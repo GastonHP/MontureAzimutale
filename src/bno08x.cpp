@@ -13,46 +13,114 @@
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
 
+// Here is where you define the sensor outputs you want to receive
+void setReports(void)
+{
+    Serial.println("Setting desired reports");
+    if (!bno08x.enableReport(SH2_ACCELEROMETER))
+    {
+        Serial.println("Could not enable accelerometer");
+    }
+    // if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED))
+    // {
+    //     Serial.println("Could not enable gyroscope");
+    // }
+    // if (!bno08x.enableReport(SH2_MAGNETIC_FIELD_CALIBRATED))
+    // {
+    //     Serial.println("Could not enable magnetic field calibrated");
+    // }
+    // if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
+    // {
+    //     Serial.println("Could not enable linear acceleration");
+    // }
+    if (!bno08x.enableReport(SH2_GRAVITY))
+    {
+        Serial.println("Could not enable gravity vector");
+    }
+    // if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
+    // {
+    //     Serial.println("Could not enable rotation vector");
+    // }
+    // if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
+    // {
+    //     Serial.println("Could not enable geomagnetic rotation vector");
+    // }
+    // if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR))
+    // {
+    //     Serial.println("Could not enable game rotation vector");
+    // }
+    // if (!bno08x.enableReport(SH2_STEP_COUNTER))
+    // {
+    //     Serial.println("Could not enable step counter");
+    // }
+    // if (!bno08x.enableReport(SH2_STABILITY_CLASSIFIER))
+    // {
+    //     Serial.println("Could not enable stability classifier");
+    // }
+    // if (!bno08x.enableReport(SH2_RAW_ACCELEROMETER))
+    // {
+    //     Serial.println("Could not enable raw accelerometer");
+    // }
+    // if (!bno08x.enableReport(SH2_RAW_GYROSCOPE))
+    // {
+    //     Serial.println("Could not enable raw gyroscope");
+    // }
+    // if (!bno08x.enableReport(SH2_RAW_MAGNETOMETER))
+    // {
+    //     Serial.println("Could not enable raw magnetometer");
+    // }
+    // if (!bno08x.enableReport(SH2_SHAKE_DETECTOR))
+    // {
+    //     Serial.println("Could not enable shake detector");
+    // }
+    // if (!bno08x.enableReport(SH2_PERSONAL_ACTIVITY_CLASSIFIER))
+    // {
+    //     Serial.println("Could not enable personal activity classifier");
+    // }
+}
+
+void printActivity(uint8_t activity_id)
+{
+    switch (activity_id)
+    {
+    case PAC_UNKNOWN:
+        Serial.print("Unknown");
+        break;
+    case PAC_IN_VEHICLE:
+        Serial.print("In Vehicle");
+        break;
+    case PAC_ON_BICYCLE:
+        Serial.print("On Bicycle");
+        break;
+    case PAC_ON_FOOT:
+        Serial.print("On Foot");
+        break;
+    case PAC_STILL:
+        Serial.print("Still");
+        break;
+    case PAC_TILTING:
+        Serial.print("Tilting");
+        break;
+    case PAC_WALKING:
+        Serial.print("Walking");
+        break;
+    case PAC_RUNNING:
+        Serial.print("Running");
+        break;
+    case PAC_ON_STAIRS:
+        Serial.print("On Stairs");
+        break;
+    default:
+        Serial.print("NOT LISTED");
+    }
+    Serial.print(" (");
+    Serial.print(activity_id);
+    Serial.print(")");
+}
+
 void bno08x_setup(Adafruit_ST7789 *tftptr)
 {
     Wire.begin(8, 9);
-    // byte error, address;
-    // int nDevices;
-
-    // Serial.println("Scanning...");
-
-    // nDevices = 0;
-    // for (address = 70; address < 127; address++)
-    // {
-    //     // The i2c_scanner uses the return value of
-    //     // the Write.endTransmisstion to see if
-    //     // a device did acknowledge to the address.
-    //     Serial.print(String(address,HEX)+".");
-    //     Wire.beginTransmission(address);
-    //     error = Wire.endTransmission();
-
-    //     if (error == 0)
-    //     {
-    //         Serial.print("I2C device found at address 0x");
-    //         if (address < 16)
-    //             Serial.print("0");
-    //         Serial.print(address, HEX);
-    //         Serial.println("  !");
-
-    //         nDevices++;
-    //     }
-    //     else if (error == 4)
-    //     {
-    //         Serial.print("Unknown error at address 0x");
-    //         if (address < 16)
-    //             Serial.print("0");
-    //         Serial.println(address, HEX);
-    //     }
-    // }
-    // if (nDevices == 0)
-    //     Serial.println("No I2C devices found\n");
-    // else
-    //     Serial.println("done\n");
 
     tftptr->setTextSize(2);
     tftptr->print("setup BNO!");
@@ -83,8 +151,10 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
         Serial.println(bno08x.prodIds.entry[n].swBuildNumber);
     }
 
-    // Activer le rapport de rotation (Quaternions pour l'astronomie)
-    bno08x.enableReport(SH2_ROTATION_VECTOR);
+    setReports();
+
+    Serial.println("Reading events");
+    delay(100);
 
     tftptr->fillScreen(ST77XX_BLACK);
     tftptr->setTextColor(ST77XX_GREEN);
@@ -95,16 +165,191 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
 
 void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
-    if (bno08x.getSensorEvent(&sensorValue))
+    delay(1000);
+
+    if (bno08x.wasReset())
     {
-        if (sensorValue.sensorId == SH2_ROTATION_VECTOR)
+        Serial.print("sensor was reset ");
+        setReports();
+    }
+
+    if (!bno08x.getSensorEvent(&sensorValue))
+    {
+        return;
+    }
+
+    switch (sensorValue.sensorId)
+    {
+
+    case SH2_ACCELEROMETER:
+        Serial.print("Accelerometer - x: ");
+        Serial.print(sensorValue.un.accelerometer.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.accelerometer.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.accelerometer.z);
+        break;
+    case SH2_GYROSCOPE_CALIBRATED:
+        Serial.print("Gyro - x: ");
+        Serial.print(sensorValue.un.gyroscope.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.gyroscope.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.gyroscope.z);
+        break;
+    case SH2_MAGNETIC_FIELD_CALIBRATED:
+        Serial.print("Magnetic Field - x: ");
+        Serial.print(sensorValue.un.magneticField.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.magneticField.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.magneticField.z);
+        break;
+    case SH2_LINEAR_ACCELERATION:
+        Serial.print("Linear Acceration - x: ");
+        Serial.print(sensorValue.un.linearAcceleration.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.linearAcceleration.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.linearAcceleration.z);
+        break;
+    case SH2_GRAVITY:
+        Serial.print("Gravity - x: ");
+        Serial.print(sensorValue.un.gravity.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.gravity.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.gravity.z);
+        break;
+    case SH2_ROTATION_VECTOR:
+        Serial.print("Rotation Vector - r: ");
+        Serial.print(sensorValue.un.rotationVector.real);
+        Serial.print(" i: ");
+        Serial.print(sensorValue.un.rotationVector.i);
+        Serial.print(" j: ");
+        Serial.print(sensorValue.un.rotationVector.j);
+        Serial.print(" k: ");
+        Serial.println(sensorValue.un.rotationVector.k);
+        break;
+    case SH2_GEOMAGNETIC_ROTATION_VECTOR:
+        Serial.print("Geo-Magnetic Rotation Vector - r: ");
+        Serial.print(sensorValue.un.geoMagRotationVector.real);
+        Serial.print(" i: ");
+        Serial.print(sensorValue.un.geoMagRotationVector.i);
+        Serial.print(" j: ");
+        Serial.print(sensorValue.un.geoMagRotationVector.j);
+        Serial.print(" k: ");
+        Serial.println(sensorValue.un.geoMagRotationVector.k);
+        break;
+
+    case SH2_GAME_ROTATION_VECTOR:
+        Serial.print("Game Rotation Vector - r: ");
+        Serial.print(sensorValue.un.gameRotationVector.real);
+        Serial.print(" i: ");
+        Serial.print(sensorValue.un.gameRotationVector.i);
+        Serial.print(" j: ");
+        Serial.print(sensorValue.un.gameRotationVector.j);
+        Serial.print(" k: ");
+        Serial.println(sensorValue.un.gameRotationVector.k);
+        break;
+
+    case SH2_STEP_COUNTER:
+        Serial.print("Step Counter - steps: ");
+        Serial.print(sensorValue.un.stepCounter.steps);
+        Serial.print(" latency: ");
+        Serial.println(sensorValue.un.stepCounter.latency);
+        break;
+
+    case SH2_STABILITY_CLASSIFIER:
+    {
+        Serial.print("Stability Classification: ");
+        sh2_StabilityClassifier_t stability = sensorValue.un.stabilityClassifier;
+        switch (stability.classification)
         {
-            // Affichage des coordonnées sur votre écran 2"
-            tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-            tftptr->setCursor(10, 60);
-            tftptr->setTextSize(3);
-            tftptr->printf("Roll: %.2f", sensorValue.un.rotationVector.real);
-            // Note: Il faudra convertir les Quaternions en Degrés pour l'Az/Alt
+        case STABILITY_CLASSIFIER_UNKNOWN:
+            Serial.println("Unknown");
+            break;
+        case STABILITY_CLASSIFIER_ON_TABLE:
+            Serial.println("On Table");
+            break;
+        case STABILITY_CLASSIFIER_STATIONARY:
+            Serial.println("Stationary");
+            break;
+        case STABILITY_CLASSIFIER_STABLE:
+            Serial.println("Stable");
+            break;
+        case STABILITY_CLASSIFIER_MOTION:
+            Serial.println("In Motion");
+            break;
         }
+        break;
+    }
+
+    case SH2_RAW_ACCELEROMETER:
+        Serial.print("Raw Accelerometer - x: ");
+        Serial.print(sensorValue.un.rawAccelerometer.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.rawAccelerometer.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.rawAccelerometer.z);
+        break;
+    case SH2_RAW_GYROSCOPE:
+        Serial.print("Raw Gyro - x: ");
+        Serial.print(sensorValue.un.rawGyroscope.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.rawGyroscope.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.rawGyroscope.z);
+        break;
+    case SH2_RAW_MAGNETOMETER:
+        Serial.print("Raw Magnetic Field - x: ");
+        Serial.print(sensorValue.un.rawMagnetometer.x);
+        Serial.print(" y: ");
+        Serial.print(sensorValue.un.rawMagnetometer.y);
+        Serial.print(" z: ");
+        Serial.println(sensorValue.un.rawMagnetometer.z);
+        break;
+
+    case SH2_SHAKE_DETECTOR:
+    {
+        Serial.print("Shake Detector - shake detected on axis: ");
+        sh2_ShakeDetector_t detection = sensorValue.un.shakeDetector;
+        switch (detection.shake)
+        {
+        case SHAKE_X:
+            Serial.println("X");
+            break;
+        case SHAKE_Y:
+            Serial.println("Y");
+            break;
+        case SHAKE_Z:
+            Serial.println("Z");
+            break;
+        default:
+            Serial.println("None");
+            break;
+        }
+    }
+
+    case SH2_PERSONAL_ACTIVITY_CLASSIFIER:
+    {
+
+        sh2_PersonalActivityClassifier_t activity =
+            sensorValue.un.personalActivityClassifier;
+        Serial.print("Activity classification - Most likely: ");
+        printActivity(activity.mostLikelyState);
+        Serial.println("");
+
+        Serial.println("Confidences:");
+        // if PAC_OPTION_COUNT is ever > 10, we'll need to
+        // care about page
+        for (uint8_t i = 0; i < PAC_OPTION_COUNT; i++)
+        {
+            Serial.print("\t");
+            printActivity(i);
+            Serial.print(": ");
+            Serial.println(activity.confidence[i]);
+        }
+    }
     }
 }

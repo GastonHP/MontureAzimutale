@@ -1,0 +1,30 @@
+processeur principal : esp32-s3-devkitc-1 avec un esp-s3 N16R8
+
+display : GMT020-02
+
+position espace : GY-BNO085
+
+GPS : à introduire
+
+connexion du GMT020-02 via bus SPI
+
+    GMT020-02           esp32-s3-devkitc-1
+        CS                  10
+        DC                  4
+        RST                 14
+        SDA                 11
+        SCL                 12
+        VCC                 3.3V
+        GND                 GND
+
+connexion du GY-BNO08x via bus I²C
+
+    GY-BNO08x           esp32-s3-devkitc-1
+        VCC                 3.3V
+        GND                 GND
+        SCL                 9
+                R4.7K       3.3V
+        SDA                 8
+                R4.7K       3.3V
+        PS1                 GND
+        PS0                 GND
