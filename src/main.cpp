@@ -1,118 +1,55 @@
-// #include <TFT_eSPI.h>
-// #include <SPI.h>
-// #include "esp_infos.hpp"
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
+#include <SPI.h>
 
-// TFT_eSPI tft = TFT_eSPI();
+#include "esp_infos.hpp"
 
-// void setup() {
-//   Serial.begin(115200);
-//   delay(2000); // Laisse le temps au S3 de se stabiliser
-//    printInfo();
-//   Serial.println("Tentative d'initialisation TFT...");
+// Define pins for the TFT display
+#define TFT_CS 10   // Chip select pin
+#define TFT_DC 4 //13   // Data Command pin
+#define TFT_RST 14  // Reset pin (could connect to Arduino RESET pin)
+#define TFT_MOSI 11 // Data out
+#define TFT_SCLK 12 // Clock out
 
-//   // FORCEZ l'initialisation du bus SPI pour le S3 avant le TFT
-//   SPI.begin(12, -1, 11, 10); // SCLK, MISO, MOSI, CS
-  
-//   tft.init(); 
-//   tft.setRotation(1);
-//   tft.fillScreen(TFT_BLUE);
-//   Serial.println("Succès ! Écran bleu affiché.");
-// }
+Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 
-// void loop() {}
+extern void lcd_test_setup(Adafruit_ST7789 *tft);
+extern void bno08x_setup(Adafruit_ST7789 *tftptr);
+extern void bno08x_loop(Adafruit_ST7789 *tftptr);
 
+void setup()
+{
+  Serial.begin(SERIAL_SPEED);
+  delay(2000); // Laisse le temps au S3 de se stabiliser
+  printInfo();
 
-// // #include "Arduino.h"
-// // #include "esp_infos.hpp"
+  SPI.begin(12, 13, 11); // SCK, MISO, MOSI
 
-// // #define debug(s) Serial.println(s)
+  tft.init(240, 320);
+  tft.setRotation(0);
+  // SPI speed defaults to SPI_DEFAULT_FREQ defined in the library, you can override it here
+  // Note that speed allowable depends on chip and quality of wiring, if you go too fast, you
+  // may end up with a black screen some times, or all the time.
+  // tft.setSPISpeed(40000000);
+  Serial.println(F("Initialized"));
+  uint16_t time = millis();
+  tft.fillScreen(ST77XX_BLACK);
+  time = millis() - time;
 
-// // #include <TFT_eSPI.h>
+  Serial.println(time, DEC);
+  delay(500);
+  //lcd_test_setup(&tft);
+  bno08x_setup(&tft);
+}
 
-// // TFT_eSPI tft = TFT_eSPI();
-// // TFT_eSprite img = TFT_eSprite(&tft); // Création d'un tampon en mémoire vive
-// // void tft_setup()
-// // {
-// //   Serial.begin(SERIAL_SPEED);
-// //   delay(3000);
-// //   debug("00");
-// //   printInfo();
-// //   // FORCEZ l'initialisation du bus SPI pour le S3 avant le TFT
-// //   SPI.begin(12, -1, 11, 10); // SCLK, MISO, MOSI, CS
-// //   debug("01");
-// //   tft.init();
-// //   debug("02");
-// //   tft.setRotation(1);
-// //   debug("03");
-// //   tft.fillScreen(TFT_BLACK);
-// //   debug("04");
+unsigned long nextTime = 0;
 
-// //   img.setColorDepth(16);
-// //   debug("05");
-// //   img.createSprite(TFT_WIDTH, TFT_HEIGHT); // Création du sprite de la taille de l'écran
-// //   debug("06");
-// //   img.fillSprite(TFT_BLUE); // Remplissage du sprite en bleu
-// //   debug("07");
-// //   img.setTextColor(TFT_WHITE); // Couleur du texte en blanc
-// //   debug("08");
-// //   img.setTextSize(2); // Taille du texte x2
-// //   debug("09");
-// //   img.setCursor(10, 10); // Position du curseur
-// //   debug("10");
-// //   img.println("TFT_eSPI Test");
-// //   debug("11");
-// //   img.setCursor(10, 40);
-// //   debug("12");
-// //   img.println("240x320 ST7789");
-// //   debug("13");
-// //   img.pushSprite(0, 0); // Affichage du sprite à l'écran en (0,0)
-// //   debug("14");
-// // }
-
-// // #ifdef ESPC3
-// // int pin = 5; // Pin por el que vamos a controlar el encedido y apagado del led
-// // #endif
-
-// // #ifdef TESTLED
-// // #define LED_PIN GPIO_NUM_18
-
-// // // the setup function runs once when you press reset or power the board
-// // void LED_setup()
-// // {
-// //   // initialize digital pin LED_BUILTIN as an output.
-// //   pinMode(LED_PIN, OUTPUT);
-// // }
-
-// // // the loop function runs over and over again forever
-// // void LED_loop()
-// // {
-// //   digitalWrite(LED_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
-// //   delay(1000);                 // wait for a second
-// //   digitalWrite(LED_PIN, LOW);  // turn the LED off by making the voltage LOW
-// //   delay(1000);                 // wait for a second
-// // }
-// // #endif
-// // void setup()
-// // {
-// //   Serial.begin(SERIAL_SPEED);
-// //   delay(3000);
-// //   printInfo();
-// // #ifdef TESTLED
-// //   LED_setup();
-// // #endif
-// //   tft_setup();
-// // }
-
-// // unsigned long nextTime = 0;
-
-// // void loop()
-// // {
-// //   if (millis() > nextTime)
-// //   {
-// //     nextTime = millis() + 10000;
-// //     printInfo();
-// //   }
-// // #ifdef TESTLED
-// //   LED_loop();
-// // #endif
-// // }
+void loop()
+{
+  if (millis() > nextTime)
+  {
+    nextTime = millis() + 10000;
+    printInfo();
+  }
+  bno08x_loop(&tft);
+}

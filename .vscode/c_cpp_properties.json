@@ -10,6 +10,8 @@
             "includePath": [
                 "C:/Users/ghisl/OneDrive/DEV/Github/MontureAzimutale/include",
                 "C:/Users/ghisl/OneDrive/DEV/Github/MontureAzimutale/src",
+                "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit BNO08x/src",
+                "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit Unified Sensor",
                 "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit ST7735 and ST7789 Library",
                 "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit GFX Library",
                 "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit BusIO",
@@ -254,6 +256,8 @@
                 "path": [
                     "C:/Users/ghisl/OneDrive/DEV/Github/MontureAzimutale/include",
                     "C:/Users/ghisl/OneDrive/DEV/Github/MontureAzimutale/src",
+                    "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit BNO08x/src",
+                    "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit Unified Sensor",
                     "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit ST7735 and ST7789 Library",
                     "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit GFX Library",
                     "c:/tmp/pio/MontureAzimutale/libdeps/ESP32_s3-N16R8-WROOM-1/Adafruit BusIO",
