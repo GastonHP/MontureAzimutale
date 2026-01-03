@@ -12,6 +12,7 @@ void setup()
   monEcran_setup();
   delay(500);
   bno08x_setup(&monEcran);
+  GPS_setup(&monEcran);
 }
 
 unsigned long nextTime = 0;
@@ -24,4 +25,5 @@ void loop()
   //   printInfo();
   // }
   bno08x_loop(&monEcran);
+  GPS_loop(&monEcran);
 }

@@ -29,10 +29,10 @@ void setReports(void)
     // {
     //     Serial.println("Could not enable magnetic field calibrated");
     // }
-    // if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
-    // {
-    //     Serial.println("Could not enable linear acceleration");
-    // }
+    if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
+    {
+        Serial.println("Could not enable linear acceleration");
+    }
     if (!bno08x.enableReport(SH2_GRAVITY))
     {
         Serial.println("Could not enable gravity vector");
@@ -136,31 +136,29 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
             delay(10);
         } // Stop si erreur
     }
-
+    tftptr->fillScreen(ST77XX_BLACK);
+    tftptr->setTextColor(ST77XX_GREEN);
+    tftptr->setTextSize(2);
+    tftptr->setCursor(5, 5);
+    tftptr->println("Systeme Pret");
+    tftptr->setTextSize(1);
     for (int n = 0; n < bno08x.prodIds.numEntries; n++)
     {
-        Serial.print("Part ");
-        Serial.print(bno08x.prodIds.entry[n].swPartNumber);
-        Serial.print(": Version :");
-        Serial.print(bno08x.prodIds.entry[n].swVersionMajor);
-        Serial.print(".");
-        Serial.print(bno08x.prodIds.entry[n].swVersionMinor);
-        Serial.print(".");
-        Serial.print(bno08x.prodIds.entry[n].swVersionPatch);
-        Serial.print(" Build ");
-        Serial.println(bno08x.prodIds.entry[n].swBuildNumber);
+        String s = "Part " + String(bno08x.prodIds.entry[n].swPartNumber, HEX) +
+                   ": Version :" + String(bno08x.prodIds.entry[n].swVersionMajor, HEX) + "." + String(bno08x.prodIds.entry[n].swVersionMinor, HEX) +
+                   "." + String(bno08x.prodIds.entry[n].swVersionPatch, HEX) +
+                   " Build " + String(bno08x.prodIds.entry[n].swBuildNumber, HEX);
+        Serial.println(s);
+        tftptr->println(s);
     }
 
     setReports();
 
     Serial.println("Reading events");
-    delay(100);
-
+    delay(1000);
     tftptr->fillScreen(ST77XX_BLACK);
     tftptr->setTextColor(ST77XX_GREEN);
     tftptr->setTextSize(2);
-    tftptr->setCursor(10, 10);
-    tftptr->print("Systeme Pret");
 }
 
 void bno08x_loop(Adafruit_ST7789 *tftptr)

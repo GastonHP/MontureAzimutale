@@ -28,3 +28,11 @@ connexion du GY-BNO08x via bus I²C
                 R4.7K       3.3V
         PS1                 GND
         PS0                 GND
+
+connexion du module GPS
+
+    GPS                 esp32-s3-devkitc-1
+        VCC                 3.3V
+        GND                 GND
+        TXD                 18 RX
+        RXD                 17 TX
