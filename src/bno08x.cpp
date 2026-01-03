@@ -37,10 +37,10 @@ void setReports(void)
     {
         Serial.println("Could not enable gravity vector");
     }
-    // if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
-    // {
-    //     Serial.println("Could not enable rotation vector");
-    // }
+    if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
+    {
+        Serial.println("Could not enable rotation vector");
+    }
     // if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
     // {
     //     Serial.println("Could not enable geomagnetic rotation vector");
@@ -118,6 +118,14 @@ void printActivity(uint8_t activity_id)
     Serial.print(")");
 }
 
+void display_angles(float yaw, float pitch, float roll, Adafruit_ST7789 *tftptr)
+{
+    tftptr->setCursor(0, 65);
+    tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    tftptr->printf("Yaw:   %7.2f\n\r", yaw);
+    tftptr->printf("Pitch: %7.2f\n\r", pitch);
+    tftptr->printf("Roll:  %7.2f\n\r", roll);
+}
 void bno08x_setup(Adafruit_ST7789 *tftptr)
 {
     Wire.begin(8, 9);
@@ -161,9 +169,15 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
     tftptr->setTextSize(2);
 }
 
+static float yaw, pitch, roll;
+static float qw, qx, qy, qz;
+static sh2_StabilityClassifier_t stability;
+static sh2_ShakeDetector_t detection;
+static sh2_PersonalActivityClassifier_t activity;
+
 void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
-    delay(1000);
+    delay(100);
 
     if (bno08x.wasReset())
     {
@@ -228,6 +242,18 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         Serial.print(sensorValue.un.rotationVector.j);
         Serial.print(" k: ");
         Serial.println(sensorValue.un.rotationVector.k);
+
+        qw = sensorValue.un.rotationVector.real;
+        qx = sensorValue.un.rotationVector.i;
+        qy = sensorValue.un.rotationVector.j;
+        qz = sensorValue.un.rotationVector.k;
+
+        // Conversion quaternion → yaw/pitch/roll
+        yaw = atan2f(2.0f * (qx * qy + qw * qz), qw * qw + qx * qx - qy * qy - qz * qz) * 57.2958f;
+        pitch = asinf(2.0f * (qw * qy - qx * qz)) * 57.2958f;
+        roll = atan2f(2.0f * (qw * qx + qy * qz), qw * qw - qx * qx - qy * qy + qz * qz) * 57.2958f;
+
+        display_angles(yaw, pitch, roll, tftptr);
         break;
     case SH2_GEOMAGNETIC_ROTATION_VECTOR:
         Serial.print("Geo-Magnetic Rotation Vector - r: ");
@@ -259,9 +285,8 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         break;
 
     case SH2_STABILITY_CLASSIFIER:
-    {
         Serial.print("Stability Classification: ");
-        sh2_StabilityClassifier_t stability = sensorValue.un.stabilityClassifier;
+        stability = sensorValue.un.stabilityClassifier;
         switch (stability.classification)
         {
         case STABILITY_CLASSIFIER_UNKNOWN:
@@ -281,8 +306,6 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
             break;
         }
         break;
-    }
-
     case SH2_RAW_ACCELEROMETER:
         Serial.print("Raw Accelerometer - x: ");
         Serial.print(sensorValue.un.rawAccelerometer.x);
@@ -309,9 +332,8 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         break;
 
     case SH2_SHAKE_DETECTOR:
-    {
         Serial.print("Shake Detector - shake detected on axis: ");
-        sh2_ShakeDetector_t detection = sensorValue.un.shakeDetector;
+        detection = sensorValue.un.shakeDetector;
         switch (detection.shake)
         {
         case SHAKE_X:
@@ -327,13 +349,11 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
             Serial.println("None");
             break;
         }
-    }
+        break;
 
     case SH2_PERSONAL_ACTIVITY_CLASSIFIER:
-    {
 
-        sh2_PersonalActivityClassifier_t activity =
-            sensorValue.un.personalActivityClassifier;
+        activity = sensorValue.un.personalActivityClassifier;
         Serial.print("Activity classification - Most likely: ");
         printActivity(activity.mostLikelyState);
         Serial.println("");
@@ -348,6 +368,6 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
             Serial.print(": ");
             Serial.println(activity.confidence[i]);
         }
-    }
+        break;
     }
 }

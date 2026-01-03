@@ -10,6 +10,9 @@ HardwareSerial GPS_Serial(2);
 // The TinyGPSPlus object
 TinyGPSPlus gps;
 
+unsigned long lastDisplay = 0;
+const unsigned long DISPLAY_INTERVAL = 1000; // Intervalle d'affichage en millisecond
+
 void gps_displayInfo()
 {
     Serial.print(F("Location: "));
@@ -67,12 +70,12 @@ void gps_displayInfo()
 
 void gps_displayInfo(Adafruit_ST7789 *monEcranptr)
 {
+    monEcranptr->setCursor(0, 0);
+    monEcranptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
     String s = "Location: ";
     if (gps.location.isValid())
     {
-        s += String(gps.location.lat(), 6);
-        s += ",";
-        s += String(gps.location.lng(), 6);
+        s += String(gps.location.lat(), 6) + "\n\r          0" + String(gps.location.lng(), 6);
     }
     else
     {
@@ -83,34 +86,26 @@ void gps_displayInfo(Adafruit_ST7789 *monEcranptr)
     s = "  Date: ";
     if (gps.date.isValid())
     {
-        s += String(gps.date.month());
-        s += "/";
-        s += String(gps.date.day());
-        s += "/";
-        s += String(gps.date.year());
+        s += String(gps.date.month()) + "/" + String(gps.date.day()) + "/" + String(gps.date.year());
     }
     else
     {
         s += "INVALID";
     }
     monEcranptr->println(s);
-    
+
     s = "  Time: ";
     if (gps.time.isValid())
     {
         if (gps.time.hour() < 10)
             s += "0";
-        s += String(gps.time.hour());
-        s += ":";
+        s += String(gps.time.hour()) + ":";
         if (gps.time.minute() < 10)
             s += "0";
-        s += String(gps.time.minute());
-        s += ":";
+        s += String(gps.time.minute()) + ":";
         if (gps.time.second() < 10)
             s += "0";
-        s += String(gps.time.second());
-        s += ".";
-
+        s += String(gps.time.second()) + ":";
         if (gps.time.centisecond() < 10)
             s += "0";
         s += String(gps.time.centisecond());
@@ -132,14 +127,18 @@ void GPS_setup(Adafruit_ST7789 *monEcranptr)
 
 void GPS_loop(Adafruit_ST7789 *monEcranptr)
 {
-    // Lecture des données GPS
-    while (GPS_Serial.available() > 0)
+    if (millis() - lastDisplay >= DISPLAY_INTERVAL)
     {
-        gps.encode(GPS_Serial.read());
-        if (gps.location.isUpdated())
+        lastDisplay = millis();
+        // Lecture des données GPS
+        while (GPS_Serial.available() > 0)
         {
-            gps_displayInfo(monEcranptr);
-            gps_displayInfo();
+            gps.encode(GPS_Serial.read());
+            if (gps.location.isUpdated())
+            {
+                gps_displayInfo(monEcranptr);
+                gps_displayInfo();
+            }
         }
     }
 }
