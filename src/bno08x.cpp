@@ -41,10 +41,10 @@ void setReports(void)
     {
         Serial.println("Could not enable rotation vector");
     }
-    // if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
-    // {
-    //     Serial.println("Could not enable geomagnetic rotation vector");
-    // }
+    if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
+    {
+        Serial.println("Could not enable geomagnetic rotation vector");
+    }
     // if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR))
     // {
     //     Serial.println("Could not enable game rotation vector");
@@ -120,7 +120,7 @@ void printActivity(uint8_t activity_id)
 
 void display_angles(float yaw, float pitch, float roll, Adafruit_ST7789 *tftptr)
 {
-    tftptr->setCursor(0, 65);
+    tftptr->setCursor(0, 110);
     tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
     tftptr->printf("Yaw:   %7.2f\n\r", yaw);
     tftptr->printf("Pitch: %7.2f\n\r", pitch);
@@ -264,6 +264,14 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         Serial.print(sensorValue.un.geoMagRotationVector.j);
         Serial.print(" k: ");
         Serial.println(sensorValue.un.geoMagRotationVector.k);
+
+        tftptr->setCursor(0, 180);
+        tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+        tftptr->printf("GRMV r:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.real);
+        tftptr->printf("     i:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.i);
+        tftptr->printf("     j:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.j);
+        tftptr->printf("     k:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.k);
+
         break;
 
     case SH2_GAME_ROTATION_VECTOR:

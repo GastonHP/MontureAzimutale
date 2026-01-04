@@ -3,142 +3,34 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <TinyGPSPlus.h>
+#include "GPSManager.hpp"
 
-// Déclaration du GPS sur Serial2
-HardwareSerial GPS_Serial(2);
-
-// The TinyGPSPlus object
-TinyGPSPlus gps;
+GPSManager gpsManager(18, 17, 9600); // RX=18, TX=17
 
 unsigned long lastDisplay = 0;
 const unsigned long DISPLAY_INTERVAL = 1000; // Intervalle d'affichage en millisecond
 
-void gps_displayInfo()
-{
-    Serial.print(F("Location: "));
-    if (gps.location.isValid())
-    {
-        Serial.print(gps.location.lat(), 6);
-        Serial.print(F(","));
-        Serial.print(gps.location.lng(), 6);
-    }
-    else
-    {
-        Serial.print(F("INVALID"));
-    }
-
-    Serial.print(F("  Date/Time: "));
-    if (gps.date.isValid())
-    {
-        Serial.print(gps.date.month());
-        Serial.print(F("/"));
-        Serial.print(gps.date.day());
-        Serial.print(F("/"));
-        Serial.print(gps.date.year());
-    }
-    else
-    {
-        Serial.print(F("INVALID"));
-    }
-
-    Serial.print(F(" "));
-    if (gps.time.isValid())
-    {
-        if (gps.time.hour() < 10)
-            Serial.print(F("0"));
-        Serial.print(gps.time.hour());
-        Serial.print(F(":"));
-        if (gps.time.minute() < 10)
-            Serial.print(F("0"));
-        Serial.print(gps.time.minute());
-        Serial.print(F(":"));
-        if (gps.time.second() < 10)
-            Serial.print(F("0"));
-        Serial.print(gps.time.second());
-        Serial.print(F("."));
-        if (gps.time.centisecond() < 10)
-            Serial.print(F("0"));
-        Serial.print(gps.time.centisecond());
-    }
-    else
-    {
-        Serial.print(F("INVALID"));
-    }
-
-    Serial.println();
-}
-
-void gps_displayInfo(Adafruit_ST7789 *monEcranptr)
-{
-    monEcranptr->setCursor(0, 0);
-    monEcranptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    String s = "Location: ";
-    if (gps.location.isValid())
-    {
-        s += String(gps.location.lat(), 6) + "\n\r          0" + String(gps.location.lng(), 6);
-    }
-    else
-    {
-        s += "INVALID";
-    }
-    monEcranptr->println(s);
-
-    s = "  Date: ";
-    if (gps.date.isValid())
-    {
-        s += String(gps.date.month()) + "/" + String(gps.date.day()) + "/" + String(gps.date.year());
-    }
-    else
-    {
-        s += "INVALID";
-    }
-    monEcranptr->println(s);
-
-    s = "  Time: ";
-    if (gps.time.isValid())
-    {
-        if (gps.time.hour() < 10)
-            s += "0";
-        s += String(gps.time.hour()) + ":";
-        if (gps.time.minute() < 10)
-            s += "0";
-        s += String(gps.time.minute()) + ":";
-        if (gps.time.second() < 10)
-            s += "0";
-        s += String(gps.time.second()) + ":";
-        if (gps.time.centisecond() < 10)
-            s += "0";
-        s += String(gps.time.centisecond());
-    }
-    else
-    {
-        s += "INVALID";
-    }
-    monEcranptr->println(s);
-}
-
 void GPS_setup(Adafruit_ST7789 *monEcranptr)
 {
-    // 3. UART pour GPS (Vitesse standard 9600 pour Neo-6M)
-    GPS_Serial.begin(9600, SERIAL_8N1, 18, 17); // RX=18, TX=17
-
+    gpsManager.begin();
     Serial.println("Tous les périphériques sont assignés.");
 }
 
 void GPS_loop(Adafruit_ST7789 *monEcranptr)
 {
-    if (millis() - lastDisplay >= DISPLAY_INTERVAL)
+    gpsManager.update();
+    if (gpsManager.hasFix())
     {
-        lastDisplay = millis();
-        // Lecture des données GPS
-        while (GPS_Serial.available() > 0)
-        {
-            gps.encode(GPS_Serial.read());
-            if (gps.location.isUpdated())
-            {
-                gps_displayInfo(monEcranptr);
-                gps_displayInfo();
-            }
-        }
+        monEcranptr->setCursor(0, 5);
+        monEcranptr->printf("Lat:   %7.2f\n\r", gpsManager.latitude());
+        monEcranptr->printf("Lng:   %7.2f\n\r", gpsManager.longitude());
+        monEcranptr->printf("Alt:   %.2f m\n\r", gpsManager.altitude());
+        monEcranptr->printf("Vitesse: %.2f km/h\n\r", gpsManager.speedKmh());
+        monEcranptr->printf("Satellites: %d\n\r", gpsManager.satellites());
+        monEcranptr->printf("Heure: %s\n\r", gpsManager.timeString().c_str());
+    }
+    else
+    {
+        Serial.println("Recherche satellites...");
     }
 }
