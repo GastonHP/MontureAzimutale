@@ -25,10 +25,10 @@ void setReports(void)
     // {
     //     Serial.println("Could not enable gyroscope");
     // }
-    // if (!bno08x.enableReport(SH2_MAGNETIC_FIELD_CALIBRATED))
-    // {
-    //     Serial.println("Could not enable magnetic field calibrated");
-    // }
+    if (!bno08x.enableReport(SH2_MAGNETIC_FIELD_CALIBRATED))
+    {
+        Serial.println("Could not enable magnetic field calibrated");
+    }
     if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
     {
         Serial.println("Could not enable linear acceleration");
@@ -174,6 +174,7 @@ static float qw, qx, qy, qz;
 static sh2_StabilityClassifier_t stability;
 static sh2_ShakeDetector_t detection;
 static sh2_PersonalActivityClassifier_t activity;
+static double cap;
 
 void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
@@ -216,6 +217,11 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         Serial.print(sensorValue.un.magneticField.y);
         Serial.print(" z: ");
         Serial.println(sensorValue.un.magneticField.z);
+        tftptr->setCursor(0, 240);
+        tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+        tftptr->printf("MFC x:   %7.2f\n\r", sensorValue.un.magneticField.x);
+        tftptr->printf("    y:   %7.2f\n\r", sensorValue.un.magneticField.y);
+        tftptr->printf("    z:   %7.2f\n\r", sensorValue.un.magneticField.z);
         break;
     case SH2_LINEAR_ACCELERATION:
         Serial.print("Linear Acceration - x: ");
@@ -265,13 +271,16 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         Serial.print(" k: ");
         Serial.println(sensorValue.un.geoMagRotationVector.k);
 
-        tftptr->setCursor(0, 180);
+        tftptr->setCursor(0, 160);
         tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
         tftptr->printf("GRMV r:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.real);
         tftptr->printf("     i:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.i);
         tftptr->printf("     j:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.j);
         tftptr->printf("     k:   %7.2f\n\r", sensorValue.un.geoMagRotationVector.k);
-
+        // You can compute the heading (azimuth) angle from the quaternion as follows:
+        //      $$Cap = \operatorname{atan2}(2(qr \cdot qk + qi \cdot qj), 1 - 2(qj^2 + qk^2)) \times \frac{180}{\pi}$$
+        cap = atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz)) * 57.2958;
+        tftptr->printf("Heading: %7.2f\n\r", cap);
         break;
 
     case SH2_GAME_ROTATION_VECTOR:

@@ -42,3 +42,4 @@ j'utilise un esp32-s3-devkitc-1 avec un GY-BNO085, un GMT020-02, un NEO-6M.
 Le GMT020-02 est câblé comme ceci : CS->10, DC->4, RST->14, MOSI->11, SCLK->12 et codé avec Adafruit_ST7789
 Le GY-BNO085 adresse 0x4B est câblé comme ceci : SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND
 Le NEO-6M est câblé comme ceci : TXD->18, RXD->17
+premier moteur : 42byg304
