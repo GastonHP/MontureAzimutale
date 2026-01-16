@@ -31,15 +31,36 @@ connexion du GY-BNO08x via bus I²C
 
 connexion du module GPS
 
-    NEO-6M                 esp32-s3-devkitc-1
-        VCC                 3.3V
-        GND                 GND
-        TXD                 18 RX
-        RXD                 17 TX
+    NEO-6M              esp32-s3-devkitc-1
+        VCC                     3.3V
+        GND                     GND
+        TXD                     18 RX
+        RXD                     17 TX
 
+connexion des drivers moteurs
+
+    Azimut DRV8825      esp32-s3-devkitc-1      moteur      
+        Step                    5
+        Dir                     6
+        En                      16
+        1A                                          1A
+        1B                                          1B
+        2A                                          2A
+        2B                                          2B
+        
+    Altitude DRV8825    
+        Step                    7
+        Dir                     15
+        En                      16
+        1A                                          1A
+        1B                                          1B
+        2A                                          2A
+        2B                                          2B
 
 j'utilise un esp32-s3-devkitc-1 avec un GY-BNO085, un GMT020-02, un NEO-6M. 
 Le GMT020-02 est câblé comme ceci : CS->10, DC->4, RST->14, MOSI->11, SCLK->12 et codé avec Adafruit_ST7789
 Le GY-BNO085 adresse 0x4B est câblé comme ceci : SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND
-Le NEO-6M est câblé comme ceci : TXD->18, RXD->17
+Le NEO-6M est câblé comme ceci : TXD->18, RXD->17 avec une capacité de 1100µF sur l'alimentation et codé avec TinyGPSPlus
+le DRV8825 (Azimut) est câblé : step->5, Dir->6, En->16
+le DRV8825 (Altitude) est câblé : step->7, Dir->15, En->16
 premier moteur : 42byg304

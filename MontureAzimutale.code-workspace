@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../lib"
+		},
+		{
+			"path": "../../../../../../tmp/pio/MontureAzimutale"
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true
+	}
+}

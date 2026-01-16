@@ -27,3 +27,9 @@ void monEcran_setup()
     monEcran.fillScreen(ST77XX_BLACK);
     Serial.println(" en " + String(millis() - time, DEC) + "ms.");
 }
+void monEcran_display(String s)
+{
+    monEcran.setTextSize(2);
+    monEcran.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    monEcran.println(s);
+}

@@ -37,14 +37,19 @@ void setReports(void)
     {
         Serial.println("Could not enable gravity vector");
     }
-    if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
-    {
-        Serial.println("Could not enable rotation vector");
-    }
+    // if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
+    // {
+    //     Serial.println("Could not enable rotation vector");
+    // }
     if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
     {
         Serial.println("Could not enable geomagnetic rotation vector");
     }
+    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV))
+    {
+        Serial.println("Could not enable AR/VR stabilized rotation vector");
+    }
+
     // if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR))
     // {
     //     Serial.println("Could not enable game rotation vector");
@@ -126,6 +131,8 @@ void display_angles(float yaw, float pitch, float roll, Adafruit_ST7789 *tftptr)
     tftptr->printf("Pitch: %7.2f\n\r", pitch);
     tftptr->printf("Roll:  %7.2f\n\r", roll);
 }
+static bool setupOK = false;
+
 void bno08x_setup(Adafruit_ST7789 *tftptr)
 {
     Wire.begin(8, 9);
@@ -139,11 +146,10 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
         tftptr->setTextSize(2);
         tftptr->setCursor(10, 40);
         tftptr->print("Erreur BNO!");
-        while (1)
-        {
-            delay(10);
-        } // Stop si erreur
+        return;
     }
+    setupOK = true;
+    Serial.println("BNO08x connected!");
     tftptr->fillScreen(ST77XX_BLACK);
     tftptr->setTextColor(ST77XX_GREEN);
     tftptr->setTextSize(2);
@@ -175,11 +181,15 @@ static sh2_StabilityClassifier_t stability;
 static sh2_ShakeDetector_t detection;
 static sh2_PersonalActivityClassifier_t activity;
 static double cap;
+static unsigned long nextLoop = 0;
 
 void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
-    delay(100);
-
+    if (millis() < nextLoop)
+        return;
+    nextLoop = millis() + 1250; // 20 Hz
+    if (!setupOK)
+        return;
     if (bno08x.wasReset())
     {
         Serial.print("sensor was reset ");
@@ -193,7 +203,28 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
 
     switch (sensorValue.sensorId)
     {
+    case SH2_ARVR_STABILIZED_RV:
+        Serial.print("AR/VR Stabilized Rotation Vector - r: ");
+        Serial.print(sensorValue.un.arvrStabilizedRV.real);
+        Serial.print(" i: ");
+        Serial.print(sensorValue.un.arvrStabilizedRV.i);
+        Serial.print(" j: ");
+        Serial.print(sensorValue.un.arvrStabilizedRV.j);
+        Serial.print(" k: ");
+        Serial.println(sensorValue.un.arvrStabilizedRV.k);
 
+        qw = sensorValue.un.arvrStabilizedRV.real;
+        qx = sensorValue.un.arvrStabilizedRV.i;
+        qy = sensorValue.un.arvrStabilizedRV.j;
+        qz = sensorValue.un.arvrStabilizedRV.k;
+
+        // Conversion quaternion → yaw/pitch/roll
+        yaw = atan2f(2.0f * (qx * qy + qw * qz), qw * qw + qx * qx - qy * qy - qz * qz) * 57.2958f;
+        pitch = asinf(2.0f * (qw * qy - qx * qz)) * 57.2958f;
+        roll = atan2f(2.0f * (qw * qx + qy * qz), qw * qw - qx * qx - qy * qy + qz * qz) * 57.2958f;
+
+        display_angles(yaw, pitch, roll, tftptr);
+        break;
     case SH2_ACCELEROMETER:
         Serial.print("Accelerometer - x: ");
         Serial.print(sensorValue.un.accelerometer.x);

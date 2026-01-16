@@ -1,0 +1,44 @@
+{
+    "Version": 26,
+    "SummerTime": 1,
+    "ssids": [
+        {
+            "ssid": "HerpoelTP2.4",
+            "psw": "UneAutreHistoireCommence"
+        },
+        {
+            "ssid": "HerpoelTP2.4",
+            "psw": "UneBelleHistoire2022"
+        },
+        {
+            "ssid": "HerpoelRE305.2.4",
+            "psw": "UneAutreHistoireCommence"
+        },
+        {
+            "ssid": "HerpoelRE305.2.4",
+            "psw": "UneBelleHistoire2022"
+        },
+        {
+            "ssid": "Herpoel_C50",
+            "psw": "UneAutreHistoireCommence"
+        }
+    ],
+    "wifiParms": {
+        "gateway": "192.168.0.1",
+        "subnet": "255.255.255.0",
+        "primaryDNS": "195.238.2.22",
+        "secondaryDNS": "195.238.2.21"
+    },
+    "MQTT": {
+        "ADDR": "192.168.0.245",
+        "USER": "ghislain",
+        "PSW": "MonDessert",
+        "PORT": 1883
+    },
+    "FTP": {
+        "ADDR": "192.168.0.250",
+        "USER": "ftpLocalUser",
+        "PSW": "MonFtp2022$",
+        "DIR": "/home/ConfigESP"
+    }
+}
