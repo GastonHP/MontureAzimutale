@@ -18,7 +18,7 @@ void GPSManager::setup(Adafruit_ST7789 *monEcranptr)
     Ecranptr = monEcranptr;
     // Initialisation du port série pour le GPS
     delay(1000);
-    gpsSerial.setRxBufferSize(1024);
+    gpsSerial.setRxBufferSize(2048);
     //
     gpsSerial.begin(_baud, SERIAL_8N1, _rx, _tx);
     delay(1000);
@@ -38,9 +38,17 @@ void GPSManager::setup(Adafruit_ST7789 *monEcranptr)
     gpsSerial.println(DISABLE_VTG);
 }
 
+unsigned long nextFix = 0;
+
 void GPSManager::loop()
 {
-    if (nFixes >= 10)
+    if(millis()>nextFix)
+    {
+        nextFix=millis()+60000;
+        nFixes=0; // reset fix count every minute
+    }
+
+    if (nFixes >= 5)
         return; // stop after 100 fixes
     if (millis() < nextLoop)
         return;
@@ -63,7 +71,7 @@ void GPSManager::loop()
         if (Ecranptr != nullptr)
         {
             Ecranptr->setCursor(0, 0);
-            Ecranptr->printf("Lat/Lng:%05.3f/%05.3f\n\r", latitude(), longitude());
+            Ecranptr->printf("%05.3fN %05.3fE\n\r", latitude(), longitude());
             Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
             Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
             Ecranptr->printf("Heure: %s\n\r", timeString().c_str());
