@@ -565,6 +565,7 @@
                 "ota_password=\"Archiduc\"",
                 "ota_port=8266",
                 "LISTDIR",
+                "USE_RGB_LED",
                 "ASYNCWEBSERVER_REGEX=1",
                 "HA_ACTIF",
                 "ESPINFOS_ACTIF",

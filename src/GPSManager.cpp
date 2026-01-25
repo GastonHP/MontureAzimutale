@@ -30,7 +30,7 @@ void GPSManager::setup(Adafruit_ST7789 *monEcranptr)
     // gpsSerial.write(GPS_HZ, sizeof(GPS_HZ));
     // delay(100);
 
-    //2. Désactiver les phrases inutiles pour alléger le buffer
+    // 2. Désactiver les phrases inutiles pour alléger le buffer
     gpsSerial.println(DISABLE_GSV);
     delay(50);
     gpsSerial.println(DISABLE_GSA);
@@ -42,10 +42,10 @@ unsigned long nextFix = 0;
 
 void GPSManager::loop()
 {
-    if(millis()>nextFix)
+    if (millis() > nextFix)
     {
-        nextFix=millis()+60000;
-        nFixes=0; // reset fix count every minute
+        nextFix = millis() + 60000;
+        nFixes = 0; // reset fix count every minute
     }
 
     if (nFixes >= 5)
@@ -71,6 +71,7 @@ void GPSManager::loop()
         if (Ecranptr != nullptr)
         {
             Ecranptr->setCursor(0, 0);
+            Ecranptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
             Ecranptr->printf("%05.3fN %05.3fE\n\r", latitude(), longitude());
             Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
             Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
@@ -93,36 +94,41 @@ void GPSManager::update()
     static int colonne = 0;
     unsigned long start = millis();
     // Log::addLog("GPSManager::update called. available=" + String(gpsSerial.available()));
-    if (gpsSerial.available()>0)
-        Serial.print("\n\r-->" + String(millis(), DEC) + ":" + String(gpsSerial.available(), DEC) + " bytes available : " + String(gpsSerial.baudRate(), DEC) + " bps : ");
-    while (gpsSerial.available()>0 || (millis() - start < 500))
+    if (gpsSerial.available() > 0)
     {
-        if (gpsSerial.available()>0)
+        int n = 0;
+        //     Serial.print("\n\r-->" + String(millis(), DEC) + ":" + String(gpsSerial.available(), DEC) + " bytes available : " + String(gpsSerial.baudRate(), DEC) + " bps : ");
+        while (gpsSerial.available() > 0) //|| (millis() - start < 500))
         {
-            int r = gpsSerial.read();
-            bool rv = gps.encode(r);
-#ifdef DEBUG_GPS
-            if (rv)
-                if (r == '$')
-                {
-                    colonne = 0;
-                    ligne += 20;
-                    if (ligne > 300)
-                        ligne = 0;
-                    monEcranptr->setCursor(colonne, ligne);
-                    monEcranptr->setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
-                }
-            if (colonne < 240 && rv == false)
+            if (gpsSerial.available() > 0)
             {
-                colonne += 8;
-                monEcranptr->print((char)r);
-            }
+                int r = gpsSerial.read();
+                n++;
+                bool rv = gps.encode(r);
+#ifdef DEBUG_GPS
+                if (rv)
+                    if (r == '$')
+                    {
+                        colonne = 0;
+                        ligne += 20;
+                        if (ligne > 300)
+                            ligne = 0;
+                        monEcranptr->setCursor(colonne, ligne);
+                        monEcranptr->setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
+                    }
+                if (colonne < 240 && rv == false)
+                {
+                    colonne += 8;
+                    monEcranptr->print((char)r);
+                }
 
 // delay(10); // to allow serial buffer to fill
 #endif
-            Serial.print((char)r);
-            delay(1); // to allow serial buffer to fill
+                Serial.print((char)r);
+                delay(2); // to allow serial buffer to fill
+            }
         }
+        Serial.print("<- " + String(n, DEC) + " ->");
     }
 }
 
@@ -138,9 +144,6 @@ String GPSManager::timeString()
     if (!gps.time.isValid())
         return "----";
     char buffer[16];
-    sprintf(buffer, "%02d:%02d:%02d",
-            gps.time.hour(),
-            gps.time.minute(),
-            gps.time.second());
+    sprintf(buffer, "%02d:%02d:%02d", gps.time.hour(), gps.time.minute(), gps.time.second());
     return String(buffer);
 }

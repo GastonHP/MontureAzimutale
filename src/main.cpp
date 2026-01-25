@@ -11,7 +11,8 @@ void setup()
 {
   Serial.begin(SERIAL_SPEED);
   delay(2000); // Laisse le temps au S3 de se stabiliser
-  // printInfo();
+  RGB_LED_setup();
+  Log::addLog("RGB_LED_setup done.");
 #ifndef TESTGPS
   monEcran_setup();
   delay(500);
@@ -40,6 +41,7 @@ unsigned long nextTime = 0;
 
 void loop()
 {
+  
 #ifndef TESTGPS
 // if (millis() > nextTime)
 // {
