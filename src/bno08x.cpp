@@ -13,38 +13,140 @@
 Adafruit_BNO08x bno08x(BNO08X_RESET);
 sh2_SensorValue_t sensorValue;
 
+// Variables pour mémoriser l'ancienne position (pour l'effaçage propre)
+int oldX = 120;
+int oldY = 160;
+
+float calculerAzimutVrai(float azimutMagnetique)
+{
+    // 1. Récupérer la longitude depuis le NEO-6M
+    // float longitude = gps.location.lng();
+
+    // 2. Formule simplifiée pour l'Europe de l'Ouest (approximation 2024-2026)
+    // La déclinaison augmente d'environ 0.15° par an.
+    // Pour Mouscron (Long: 3.2° E), la déclinaison est d'environ +2.8°
+    float declinaison = 2.8;
+
+    float azimutVrai = azimutMagnetique + declinaison;
+
+    // 3. Rester dans la plage 0-360°
+    if (azimutVrai >= 360)
+        azimutVrai -= 360;
+    if (azimutVrai < 0)
+        azimutVrai += 360;
+
+    return azimutVrai;
+}
+
+void bno08x_dessinerBoussole(float azimut, Adafruit_ST7789 *tftptr, bool vraiNord = true)
+{
+    uint16_t couleurAiguille = ST77XX_BLUE;
+    if (vraiNord)
+    {
+        azimut = calculerAzimutVrai(azimut);
+        couleurAiguille = ST77XX_GREEN;
+    }
+
+    int cX = 120; // Centre X
+    int cY = 160; // Centre Y
+    int r = 80;   // Rayon du cadran
+
+    // 1. Dessiner le cadran fixe (une seule fois idéalement)
+    tftptr->drawCircle(cX, cY, r, ST77XX_WHITE);
+    tftptr->setTextColor(ST77XX_RED);
+    tftptr->setCursor(cX - 5, cY - r - 15);
+    tftptr->print("N");
+    tftptr->setTextColor(ST77XX_WHITE);
+    tftptr->setCursor(cX - 5, cY + r + 5);
+    tftptr->print("S");
+    // 2. Calculer l'angle de l'aiguille (en radians)
+    float rad = azimut * PI / 180.0;
+
+    // 3. Effacer l'ancienne aiguille (méthode simple : redessiner le fond)
+    static float lastRad = 0;
+    tftptr->drawLine(cX, cY, cX + sin(lastRad) * r, cY - cos(lastRad) * r, ST77XX_BLACK);
+
+    // 4. Dessiner la nouvelle aiguille
+    // Nord en Rouge
+    tftptr->drawLine(cX, cY, cX + sin(rad) * r, cY - cos(rad) * r, couleurAiguille);
+    // Sud en Blanc (optionnel)
+    tftptr->drawLine(cX, cY, cX - sin(rad) * (r / 2), cY + cos(rad) * (r / 2), ST77XX_WHITE);
+
+    lastRad = rad;
+
+    // 5. Affichage numérique au centre
+    tftptr->fillRect(cX - 20, cY + 20, 40, 15, ST77XX_BLACK); // Effacement partiel
+    tftptr->setCursor(cX - 15, cY + 20);
+    tftptr->printf("%03d", (int)azimut);
+}
+
+void bno08x_dessinerNiveauVif(float pitch, float roll, Adafruit_ST7789 *tftptr)
+{
+    int centreX = 120;
+    int centreY = 160;
+    int sensibilite = 8; // Ajustez pour rendre la bulle plus ou moins vive
+
+    // 1. Calcul de la nouvelle position (Inversion du signe selon l'orientation du capteur)
+    int newX = centreX + (int)(roll * sensibilite);
+    int newY = centreY + (int)(pitch * sensibilite);
+
+    // 2. Contrainte pour que la bulle ne sorte pas trop de la cible
+    newX = constrain(newX, centreX - 60, centreX + 60);
+    newY = constrain(newY, centreY - 60, centreY + 60);
+
+    // 3. Dessin de la cible fixe (une seule fois ou à chaque tour)
+    tftptr->drawCircle(centreX, centreY, 50, ST77XX_WHITE);
+    tftptr->drawCircle(centreX, centreY, 5, ST77XX_WHITE); // Point central
+
+    // 4. Effacer l'ancienne bulle (en la dessinant en noir)
+    if (newX != oldX || newY != oldY)
+    {
+        tftptr->fillCircle(oldX, oldY, 10, ST77XX_BLACK);
+    }
+
+    // 5. Dessiner la nouvelle bulle (Vert si proche du centre, rouge sinon)
+    uint16_t couleurBulle = ST77XX_RED;
+    if (abs(pitch) < 0.2 && abs(roll) < 0.2)
+        couleurBulle = ST77XX_GREEN;
+
+    tftptr->fillCircle(newX, newY, 10, couleurBulle);
+
+    // Sauvegarde pour le prochain tour
+    oldX = newX;
+    oldY = newY;
+}
 // Here is where you define the sensor outputs you want to receive
 void setReports(void)
 {
     Serial.println("Setting desired reports");
-    if (!bno08x.enableReport(SH2_ACCELEROMETER))
-    {
-        Serial.println("Could not enable accelerometer");
-    }
+    // if (!bno08x.enableReport(SH2_ACCELEROMETER))
+    // {
+    //     Serial.println("Could not enable accelerometer");
+    // }
     // if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED))
     // {
     //     Serial.println("Could not enable gyroscope");
     // }
-    if (!bno08x.enableReport(SH2_MAGNETIC_FIELD_CALIBRATED))
-    {
-        Serial.println("Could not enable magnetic field calibrated");
-    }
-    if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
-    {
-        Serial.println("Could not enable linear acceleration");
-    }
-    if (!bno08x.enableReport(SH2_GRAVITY))
-    {
-        Serial.println("Could not enable gravity vector");
-    }
+    // if (!bno08x.enableReport(SH2_MAGNETIC_FIELD_CALIBRATED))
+    // {
+    //     Serial.println("Could not enable magnetic field calibrated");
+    // }
+    // if (!bno08x.enableReport(SH2_LINEAR_ACCELERATION))
+    // {
+    //     Serial.println("Could not enable linear acceleration");
+    // }
+    // if (!bno08x.enableReport(SH2_GRAVITY))
+    // {
+    //     Serial.println("Could not enable gravity vector");
+    // }
     // if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
     // {
     //     Serial.println("Could not enable rotation vector");
     // }
-    if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
-    {
-        Serial.println("Could not enable geomagnetic rotation vector");
-    }
+    // if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
+    // {
+    //     Serial.println("Could not enable geomagnetic rotation vector");
+    // }
     if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV))
     {
         Serial.println("Could not enable AR/VR stabilized rotation vector");
@@ -125,7 +227,7 @@ void printActivity(uint8_t activity_id)
 
 void display_angles(float yaw, float pitch, float roll, Adafruit_ST7789 *tftptr)
 {
-    tftptr->setCursor(0, 110);
+    tftptr->setCursor(0, 240);
     tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
     tftptr->printf("Yaw:   %7.2f\n\r", yaw);
     tftptr->printf("Pitch: %7.2f\n\r", pitch);
@@ -187,7 +289,7 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
     if (millis() < nextLoop)
         return;
-    nextLoop = millis() + 1250; // 20 Hz
+    nextLoop = millis() + 50; // 20 Hz
     if (!setupOK)
         return;
     if (bno08x.wasReset())
@@ -224,6 +326,9 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         roll = atan2f(2.0f * (qw * qx + qy * qz), qw * qw - qx * qx - qy * qy + qz * qz) * 57.2958f;
 
         display_angles(yaw, pitch, roll, tftptr);
+        bno08x_dessinerNiveauVif(pitch, roll, tftptr);
+        bno08x_dessinerBoussole(yaw, tftptr);
+        bno08x_dessinerBoussole(yaw, tftptr, false); // Magnétique
         break;
     case SH2_ACCELEROMETER:
         Serial.print("Accelerometer - x: ");

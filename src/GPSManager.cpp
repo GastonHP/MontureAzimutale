@@ -147,3 +147,4 @@ String GPSManager::timeString()
     sprintf(buffer, "%02d:%02d:%02d", gps.time.hour(), gps.time.minute(), gps.time.second());
     return String(buffer);
 }
+

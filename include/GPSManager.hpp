@@ -21,7 +21,7 @@ public:
     int satellites();
     void configureGPS();
     String timeString();
-
+  
 private:
     int _rx, _tx, _baud;
     TinyGPSPlus gps;
@@ -34,5 +34,5 @@ private:
         Open,
         Closed
     };
-    portStatus portStatusValue=Closed;
+    portStatus portStatusValue = Closed;
 };
