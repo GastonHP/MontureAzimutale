@@ -16,7 +16,7 @@ void monEcran_setup()
     SPI.begin(12, 13, 11); // SCK, MISO, MOSI
 
     monEcran.init(240, 320);
-    monEcran.setRotation(0);
+    monEcran.setRotation(2);
     // SPI speed defaults to SPI_DEFAULT_FREQ defined in the library, you can override it here
     // Note that speed allowable depends on chip and quality of wiring, if you go too fast, you
     // may end up with a black screen some times, or all the time.

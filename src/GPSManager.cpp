@@ -53,39 +53,39 @@ void GPSManager::loop()
     if (millis() < nextLoop)
         return;
 
-    // switch (portStatusValue)
-    // {
-    // case Closed:
-    //     nextLoop = millis() + 1000;
-    //     //gpsSerial.begin(_baud, SERIAL_8N1, _rx, _tx);
-    //     portStatusValue = Open;
-    //     break;
-    // case Open:
-    nextLoop = millis() + 1000;
-    update();
-    // //gpsSerial.end();
-    // portStatusValue = Closed;
-    if (hasFix())
+    switch (portStatusValue)
     {
-        nFixes++;
-        if (Ecranptr != nullptr)
+    case Closed:
+        nextLoop = millis() + 1000;
+        gpsSerial.begin(_baud, SERIAL_8N1, _rx, _tx);
+        portStatusValue = Open;
+        break;
+    case Open:
+        nextLoop = millis() + 1000;
+        update();
+        gpsSerial.end();
+        portStatusValue = Closed;
+        if (hasFix())
         {
-            Ecranptr->setCursor(0, 0);
-            Ecranptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-            Ecranptr->printf("%05.3fN %05.3fE\n\r", latitude(), longitude());
-            Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
-            Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
-            Ecranptr->printf("Heure: %s\n\r", timeString().c_str());
+            nFixes++;
+            if (Ecranptr != nullptr)
+            {
+                Ecranptr->setCursor(0, 0);
+                Ecranptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+                Ecranptr->printf("%05.3fN %05.3fE\n\r", latitude(), longitude());
+                Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
+                Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
+                Ecranptr->printf("Heure: %s\n\r", timeString().c_str());
+            }
         }
+        else
+        {
+            // Serial.println("Recherche satellites...");
+            // monEcranptr->setCursor(0, 0);
+            // monEcranptr->printf("Recherche satellites...\n\r");
+        }
+        break;
     }
-    else
-    {
-        // Serial.println("Recherche satellites...");
-        // monEcranptr->setCursor(0, 0);
-        // monEcranptr->printf("Recherche satellites...\n\r");
-    }
-    //     break;
-    // }
 }
 
 void GPSManager::update()
@@ -147,4 +147,3 @@ String GPSManager::timeString()
     sprintf(buffer, "%02d:%02d:%02d", gps.time.hour(), gps.time.minute(), gps.time.second());
     return String(buffer);
 }
-
