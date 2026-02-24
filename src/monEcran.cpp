@@ -26,6 +26,20 @@ void monEcran_setup()
     Serial.print("remplissage en noir...");
     monEcran.fillScreen(ST77XX_BLACK);
     Serial.println(" en " + String(millis() - time, DEC) + "ms.");
+    // monEcran.setTextSize(2);
+    // monEcran.setTextColor(ST77XX_GREEN);    
+    // monEcran.setCursor(0, 0);
+    // for(int i=1;i<32;i++)
+    // {
+    //     monEcran.println("Ligne " + String(i));
+    // }
+    // delay(2000);
+    // monEcran.setCursor(0, 0);
+    // monEcran.setTextSize(2);
+    // monEcran.print("000000000111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999");
+    // monEcran.setCursor(0, 30);  
+    // monEcran.print("0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789");
+    // delay(2000);
 }
 void monEcran_display(String s)
 {

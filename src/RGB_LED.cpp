@@ -19,7 +19,7 @@ void RGB_LED_SET(fl::u8 ir, fl::u8 ig, fl::u8 ib, fl::u8 brightness)
 void RGB_LED_setup()
 {
     FastLED.addLeds<SK6812, DATA_PIN, GRB>(leds, NUM_LEDS);
-    RGB_LED_SET(0, 32, 0, 63); // éteint la LED au démarrage
+    RGB_LED_SET(0, 32, 0, 15); // éteint la LED au démarrage
 }
 
 
