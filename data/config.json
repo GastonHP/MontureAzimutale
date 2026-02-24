@@ -1,26 +1,18 @@
 {
-    "Version": 26,
-    "SummerTime": 1,
+    "Version": 31,
+    "SummerTime": 0,
     "ssids": [
         {
             "ssid": "HerpoelTP2.4",
             "psw": "UneAutreHistoireCommence"
         },
         {
-            "ssid": "HerpoelTP2.4",
-            "psw": "UneBelleHistoire2022"
+            "ssid": "FRITZ!Box 4060 GY",
+            "psw": "00485395339418867374"
         },
         {
-            "ssid": "HerpoelRE305.2.4",
-            "psw": "UneAutreHistoireCommence"
-        },
-        {
-            "ssid": "HerpoelRE305.2.4",
-            "psw": "UneBelleHistoire2022"
-        },
-        {
-            "ssid": "Herpoel_C50",
-            "psw": "UneAutreHistoireCommence"
+            "ssid": "RE305_2.4",
+            "psw": "00485395339418867374"
         }
     ],
     "wifiParms": {

@@ -2,6 +2,8 @@
 #include "esp_infos.hpp"
 #include "Config.hpp"
 #include "GPSManager.hpp"
+#include "Batterie.hpp"
+#include "OTA.hpp"
 
 GPSManager gpsManager(18, 17, 9600); // RX=18, TX=17
 
@@ -41,17 +43,13 @@ unsigned long nextTime = 0;
 
 void loop()
 {
-  
-#ifndef TESTGPS
-// if (millis() > nextTime)
-// {
-//   nextTime = millis() + 10000;
-//   printInfo();
-// }
 #ifdef CONFIG_ACTIF
   generic_loop();
 #endif
-  bno08x_loop(&monEcran);
-#endif
-  gpsManager.loop();
+  if (!OTA::started())
+  {
+    bno08x_loop(&monEcran);
+    gpsManager.loop();
+    Batterie::loop(&monEcran);
+  }
 }

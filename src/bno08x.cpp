@@ -4,8 +4,8 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 
 // For SPI mode, we need a CS pin
-#define BNO08X_CS 5
-#define BNO08X_INT 7
+// #define BNO08X_CS 5
+// #define BNO08X_INT 7
 
 // For SPI mode, we also need a RESET
 #define BNO08X_RESET -1
@@ -16,6 +16,15 @@ sh2_SensorValue_t sensorValue;
 // Variables pour mémoriser l'ancienne position (pour l'effaçage propre)
 int oldX = 120;
 int oldY = 160;
+
+// À mettre dans ton setup() après bno08x.begin()
+void activerCalibration()
+{
+    // On configure le "Dynamic Calibration"
+    // magCalEnabled = 1, accelCalEnabled = 1, gyroCalEnabled = 1
+    sh2_setCalConfig(SH2_CAL_MAG | SH2_CAL_ACCEL | SH2_CAL_GYRO);
+    // sh2_saveConfig(); // Sauvegarde dans la mémoire non volatile du BNO08x
+}
 
 float calculerAzimutVrai(float azimutMagnetique)
 {
@@ -40,6 +49,10 @@ float calculerAzimutVrai(float azimutMagnetique)
 
 void bno08x_dessinerBoussole(float azimut, Adafruit_ST7789 *tftptr, bool vraiNord = true)
 {
+    static unsigned long lastDisplay = 0;
+    if (millis() - lastDisplay < 3000)
+        return;
+    lastDisplay = millis();
     uint16_t couleurAiguille = ST77XX_BLUE;
     if (vraiNord)
     {
@@ -47,7 +60,7 @@ void bno08x_dessinerBoussole(float azimut, Adafruit_ST7789 *tftptr, bool vraiNor
         couleurAiguille = ST77XX_GREEN;
     }
 
-    int cX = 120; // Centre X
+    int cX = 80;  // Centre X
     int cY = 160; // Centre Y
     int r = 80;   // Rayon du cadran
 
@@ -82,7 +95,11 @@ void bno08x_dessinerBoussole(float azimut, Adafruit_ST7789 *tftptr, bool vraiNor
 
 void bno08x_dessinerNiveauVif(float pitch, float roll, Adafruit_ST7789 *tftptr)
 {
-    int centreX = 120;
+    static unsigned long lastDisplay = 0;
+    if (millis() - lastDisplay < 3000)
+        return;
+    lastDisplay = millis();
+    int centreX = 80;
     int centreY = 160;
     int sensibilite = 8; // Ajustez pour rendre la bulle plus ou moins vive
 
@@ -139,18 +156,18 @@ void setReports(void)
     // {
     //     Serial.println("Could not enable gravity vector");
     // }
-    // if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
-    // {
-    //     Serial.println("Could not enable rotation vector");
-    // }
+    if (!bno08x.enableReport(SH2_ROTATION_VECTOR))
+    {
+        Serial.println("Could not enable rotation vector");
+    }
     // if (!bno08x.enableReport(SH2_GEOMAGNETIC_ROTATION_VECTOR))
     // {
     //     Serial.println("Could not enable geomagnetic rotation vector");
     // }
-    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV))
-    {
-        Serial.println("Could not enable AR/VR stabilized rotation vector");
-    }
+    // if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV))
+    // {
+    //     Serial.println("Could not enable AR/VR stabilized rotation vector");
+    // }
 
     // if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR))
     // {
@@ -227,7 +244,11 @@ void printActivity(uint8_t activity_id)
 
 void display_angles(float yaw, float pitch, float roll, Adafruit_ST7789 *tftptr)
 {
-    tftptr->setCursor(0, 240);
+    static unsigned long lastDisplay = 0;
+    if (millis() - lastDisplay < 3000)
+        return;
+    lastDisplay = millis();
+    tftptr->setCursor(0, 260);
     tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
     tftptr->printf("Yaw:   %7.2f\n\r", yaw);
     tftptr->printf("Pitch: %7.2f\n\r", pitch);
@@ -241,7 +262,8 @@ void bno08x_setup(Adafruit_ST7789 *tftptr)
 
     tftptr->setTextSize(2);
     tftptr->print("setup BNO!");
-    // 3. Initialiser le capteur BNO085
+    // delay(1000);
+    //  3. Initialiser le capteur BNO085
     if (!bno08x.begin_I2C(0x4B, &Wire))
     {
         tftptr->setTextColor(ST77XX_RED);
@@ -287,9 +309,12 @@ static unsigned long nextLoop = 0;
 
 void bno08x_loop(Adafruit_ST7789 *tftptr)
 {
+    float accuracy;
+    uint8_t calibrationStatus;
     if (millis() < nextLoop)
         return;
-    nextLoop = millis() + 50; // 20 Hz
+    nextLoop = millis() + 1000; // 20 Hz
+    Serial.println("Loop BNO08x start:" + String(millis(), DEC));
     if (!setupOK)
         return;
     if (bno08x.wasReset())
@@ -302,7 +327,24 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
     {
         return;
     }
+    // On récupère le statut global de la précision
+    // sensorValue.status contient la valeur (0 à 3)
+    uint8_t precision = sensorValue.status & 0x03;
 
+    // Affichage graphique simple de la précision (vert = 3, cyan = 2, rouge = 0 ou 1)
+    switch (precision)
+    {
+    case 3:
+        tftptr->setTextColor(ST77XX_GREEN, ST77XX_BLACK);
+        break;
+    case 2:
+        tftptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+        break;
+    default:
+        tftptr->setTextColor(ST77XX_RED, ST77XX_BLACK);
+    }
+    tftptr->setCursor(0, 32);
+    tftptr->printf("ACC:%d", precision);
     switch (sensorValue.sensorId)
     {
     case SH2_ARVR_STABILIZED_RV:
@@ -325,10 +367,14 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         pitch = asinf(2.0f * (qw * qy - qx * qz)) * 57.2958f;
         roll = atan2f(2.0f * (qw * qx + qy * qz), qw * qw - qx * qx - qy * qy + qz * qz) * 57.2958f;
 
+        // À ajouter dans votre fonction afficherInterface
+        accuracy = sensorValue.un.arvrStabilizedRV.accuracy; // 0 = Invalide, 3 = Précision max
+        tftptr->setCursor(72, 32);
+        tftptr->printf("CAL: %f", accuracy);
         display_angles(yaw, pitch, roll, tftptr);
         bno08x_dessinerNiveauVif(pitch, roll, tftptr);
-        bno08x_dessinerBoussole(yaw, tftptr);
-        bno08x_dessinerBoussole(yaw, tftptr, false); // Magnétique
+        // bno08x_dessinerBoussole(yaw, tftptr);
+        bno08x_dessinerBoussole(yaw, tftptr, true); // Magnétique
         break;
     case SH2_ACCELEROMETER:
         Serial.print("Accelerometer - x: ");
@@ -396,6 +442,28 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         roll = atan2f(2.0f * (qw * qx + qy * qz), qw * qw - qx * qx - qy * qy + qz * qz) * 57.2958f;
 
         display_angles(yaw, pitch, roll, tftptr);
+        // On extrait le statut (les 2 bits de poids faible)
+        // 0 = Unreliable (Non fiable)
+        // 1 = Accuracy Low (Faible)
+        // 2 = Accuracy Medium (Moyenne)
+        // 3 = Accuracy High (Maximale)
+        calibrationStatus = sensorValue.status & 0x03;
+        bno08x_dessinerNiveauVif(pitch, roll, tftptr);
+        // bno08x_dessinerBoussole(yaw, tftptr);
+        bno08x_dessinerBoussole(yaw, tftptr, true); // Magnétique
+        // // Affichage sur l'écran GMT020-02
+        // tftptr->setCursor(200, 50);
+        // if (calibrationStatus == 3)
+        // {
+        //     tftptr->setTextColor(ST77XX_GREEN, ST77XX_BLACK);
+        //     sh2_saveConfig(); // Sauvegarde dans la mémoire non volatile du BNO08x
+        //     tftptr->print("CAL: OK ");
+        // }
+        // else
+        // {
+        //     tftptr->setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
+        //     tftptr->printf("CAL: %d/3", calibrationStatus);
+        // }
         break;
     case SH2_GEOMAGNETIC_ROTATION_VECTOR:
         Serial.print("Geo-Magnetic Rotation Vector - r: ");
@@ -523,4 +591,5 @@ void bno08x_loop(Adafruit_ST7789 *tftptr)
         }
         break;
     }
+    Serial.println("Loop BNO08x end  :" + String(millis(), DEC));
 }

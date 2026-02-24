@@ -72,10 +72,10 @@ void GPSManager::loop()
             {
                 Ecranptr->setCursor(0, 0);
                 Ecranptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-                Ecranptr->printf("%05.3fN %05.3fE\n\r", latitude(), longitude());
-                Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
-                Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
-                Ecranptr->printf("Heure: %s\n\r", timeString().c_str());
+                Ecranptr->printf("UT: %s Sat:%d\n\r", timeString().c_str(), satellites());
+                Ecranptr->printf("%05.2fN   %05.2fE\n\r", latitude(), longitude());
+                // Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
+                // Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
             }
         }
         else
@@ -124,11 +124,11 @@ void GPSManager::update()
 
 // delay(10); // to allow serial buffer to fill
 #endif
-                Serial.print((char)r);
+                //Serial.print((char)r);
                 delay(2); // to allow serial buffer to fill
             }
         }
-        Serial.print("<- " + String(n, DEC) + " ->");
+        //Serial.print("<- " + String(n, DEC) + " ->");
     }
 }
 

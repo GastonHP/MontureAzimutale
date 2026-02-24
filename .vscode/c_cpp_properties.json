@@ -553,7 +553,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60118",
+                "PLATFORMIO=60119",
                 "BOARD_HAS_PSRAM",
                 "SERIAL_SPEED=115200",
                 "FTPPath=\"monture\"",
