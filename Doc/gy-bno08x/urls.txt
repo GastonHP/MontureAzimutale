@@ -1,0 +1,3 @@
+https://how2electronics.com/high-accuracy-pitch-roll-yaw-with-esp32-bno08x-imu/
+https://pcbsync.com/adafruit-bno055-bno085-imu-sensor/
+https://github.com/adafruit/Adafruit_BNO08x
