@@ -451,7 +451,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "MontureAzimutale.kicad_pro",
+    "filename": "main.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -613,6 +613,18 @@
     [
       "71abecfb-cf01-4845-b5b4-89a1f610326d",
       "Root"
+    ],
+    [
+      "0b501443-5235-4710-a2e7-da3603b870ff",
+      "Alimentation"
+    ],
+    [
+      "19b04c30-ba1c-490f-96af-2011eb9b2294",
+      "BNO085"
+    ],
+    [
+      "0c3b59f1-191f-46ed-99f1-9e1bcae3768d",
+      "Moteur et alimentation"
     ]
   ],
   "text_variables": {}

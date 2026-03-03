@@ -43,26 +43,37 @@ connexion des drivers moteurs
         Step                    5
         Dir                     6
         En                      16
-        1A                                          1A
-        1B                                          1B
-        2A                                          2A
-        2B                                          2B
+        SLP                     3
+        RST                     3
+        M0                      2
+        M1                      41
+        M2                      42
+        A2                                          2A  Vert
+        A1                                          1A  Noir
+        B1                                          1B  Rouge
+        B2                                          2B  Bleu
         
     Altitude DRV8825    
         Step                    7
         Dir                     15
         En                      16
-        1A                                          1A
-        1B                                          1B
-        2A                                          2A
-        2B                                          2B
+        SLP                     3
+        RST                     3
+        M0                      2
+        M1                      41
+        M2                      42
+        A2                                          2A  Blanc
+        A1                                          1A  Marron
+        B1                                          1B  Orange
+        B2                                          2B  Vert
 
 j'utilise un esp32-s3-devkitc-1 (flash 16M, Ram 8M) avec un GY-BNO085, un GMT020-02, un NEO-6M. un clavier bluetooth
 Le GMT020-02 est câblé comme ceci : CS->10, DC->4, RST->14, MOSI->11, SCLK->12 et codé avec Adafruit_ST7789
-Le GY-BNO085, 240x320, adresse 0x4B est câblé comme ceci : SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND
+Le GY-BNO085, 240x320, adresse 0x4B est câblé en I²C : SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND
 Le NEO-6M est câblé comme ceci : TXD->18, RXD->17 avec une capacité de 1000µF sur l'alimentation 3.3V et codé avec TinyGPSPlus
-le DRV8825 (Azimut) est câblé : step->5, Dir->6, En->16
-le DRV8825 (Altitude) est câblé : step->7, Dir->15, En->16
-les M0, M1 et M2 des DRV8825 sont mis à 3.3V pour diviser les pas par 32.
+le DRV8825 (Azimut) est câblé : step->5, Dir->6, En->16, SLP->3, RST->3
+le DRV8825 (Altitude) est câblé : step->7, Dir->15, En->16, SLP->3, RST->3
+les M0, M1 et M2 des DRV8825 sont branchés sur pin 1, 41 et 42 su esp32
 premier moteur : 42byg304
 alimentation : batterie Bosch 18V avec module XH-M609 coupure à 16V, Hystérésis à 2V et module hw-083 pour le 5V
+alimentation : pont diviseur sur pin 1 du esp32 avec résistances de 300k et 51k
