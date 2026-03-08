@@ -8,6 +8,10 @@
 		},
 		{
 			"path": "../../../../../../tmp/pio/MontureAzimutale"
+		},
+		{
+			"name": "test",
+			"path": "D:/testesp/mon_projet/test"
 		}
 	],
 	"settings": {

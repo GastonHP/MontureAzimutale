@@ -615,16 +615,20 @@
       "Root"
     ],
     [
-      "0b501443-5235-4710-a2e7-da3603b870ff",
-      "Alimentation"
+      "0c3b59f1-191f-46ed-99f1-9e1bcae3768d",
+      "Moteurs et alimentation"
     ],
     [
       "19b04c30-ba1c-490f-96af-2011eb9b2294",
       "BNO085"
     ],
     [
-      "0c3b59f1-191f-46ed-99f1-9e1bcae3768d",
-      "Moteur et alimentation"
+      "50c23b6a-2e73-4b06-a359-24f722f774a4",
+      "NEO-6M"
+    ],
+    [
+      "986bd813-8c16-4b2a-a190-7b90d18758f9",
+      "GMT020-02"
     ]
   ],
   "text_variables": {}

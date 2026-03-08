@@ -3143,7 +3143,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_EH_B10B-EH-A_1x10_P2.50mm_Vertical"
 			(at 262.89 115.57 0)
 			(effects
 				(font
@@ -3237,7 +3237,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_EH_B2B-EH-A_1x02_P2.50mm_Vertical"
 			(at 262.89 74.93 0)
 			(effects
 				(font
@@ -3883,7 +3883,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_EH_B2B-EH-A_1x02_P2.50mm_Vertical"
 			(at 262.89 67.31 0)
 			(effects
 				(font

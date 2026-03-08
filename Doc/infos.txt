@@ -9,63 +9,65 @@ GPS : à introduire
 connexion du GMT020-02 via bus SPI
 
     GMT020-02           esp32-s3-devkitc-1
-        CS                  10
-        DC                  4
-        RST                 14
-        SDA                 11
-        SCL                 12
-        VCC                 3.3V
-        GND                 GND
+        CS                  10      G
+        DC                  4       G
+        RST                 14      G
+        SDA                 11      G
+        SCL                 12      G
+        VCC                 3.3V    G
+        GND                 GND     G/D
 
 connexion du GY-BNO08x via bus I²C
 
     GY-BNO08x           esp32-s3-devkitc-1
-        VCC                 3.3V
-        GND                 GND
-        SCL                 9
-                R4.7K       3.3V
-        SDA                 8
-                R4.7K       3.3V
-        PS1                 GND
-        PS0                 GND
+        VCC                 3.3V    G
+        GND                 GND     G/D
+        SCL                 9       G
+                R4.7K       3.3V    G
+        SDA                 8       G
+                R4.7K       3.3V    G
+        PS1                 GND     G/D
+        PS0                 GND     G/D
 
 connexion du module GPS
 
     NEO-6M              esp32-s3-devkitc-1
-        VCC                     5V
-        GND                     GND
-        TXD                     18 RX
-        RXD                     17 TX
+        VCC                 5V      G 
+        GND                 GND     G/D
+        TXD                 18 RX   G
+        RXD                 17 TX   G
 
 connexion des drivers moteurs
 
     Azimut DRV8825      esp32-s3-devkitc-1      moteur      
-        Step                    5
-        Dir                     6
-        En                      16
-        SLP                     3
-        RST                     3
-        M0                      2
-        M1                      41
-        M2                      42
+        Step                    5   G
+        Dir                     6   G
+        En                      16  G
+        SLP                     3   G
+        RST                     3   G
+        M0                      2   D
+        M1                      41  D
+        M2                      42  D
         A2                                          2A  Vert
         A1                                          1A  Noir
         B1                                          1B  Rouge
         B2                                          2B  Bleu
         
     Altitude DRV8825    
-        Step                    7
-        Dir                     15
-        En                      16
-        SLP                     3
-        RST                     3
-        M0                      2
-        M1                      41
-        M2                      42
+        Step                    7   G
+        Dir                     15  G
+        En                      16  G
+        SLP                     3   G
+        RST                     3   G
+        M0                      2   D
+        M1                      41  D
+        M2                      42  D
         A2                                          2A  Blanc
         A1                                          1A  Marron
         B1                                          1B  Orange
         B2                                          2B  Vert
+
+    pont diviseur               1
 
 j'utilise un esp32-s3-devkitc-1 (flash 16M, Ram 8M) avec un GY-BNO085, un GMT020-02, un NEO-6M. un clavier bluetooth
 Le GMT020-02 est câblé comme ceci : CS->10, DC->4, RST->14, MOSI->11, SCLK->12 et codé avec Adafruit_ST7789

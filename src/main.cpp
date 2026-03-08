@@ -18,22 +18,27 @@ void setup()
 #ifndef TESTGPS
   monEcran_setup();
   delay(500);
+  Serial.println(F("monEcran_setup done."));
 #ifdef CONFIG_ACTIF
   Config::setup(monEcran_display);
   Log::addLog("Config::setup done.");
+  Serial.println(F("Config::setup done."));
   generic_setup(monEcran_display);
   Log::addLog("generic_setup done.");
 #endif
-
+Serial.println(F("Setup after config done."));
 #ifdef SD_ACTIF
   SDisk::setup();
 #endif
+Serial.println(F("Setup after SDisk done."));
   bno08x_setup(&monEcran);
+  Serial.println(F("bno08x_setup done."));
   Log::addLog("bno08x_setup done.");
 
   gpsManager.setup(&monEcran);
+  Serial.println(F("GPS_setup done."));
   Log::addLog("GPS_setup done.");
-
+Serial.println(F("Setup after GPS done."));
 #else
   gpsManager.setup(nullptr);
 #endif
