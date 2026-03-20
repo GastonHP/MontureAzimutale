@@ -17,11 +17,13 @@ void setup()
   Log::addLog("RGB_LED_setup done.");
 #ifndef TESTGPS
   monEcran_setup();
+  RGB_LED_SET(0, 0, 32, 15); // éteint la LED au démarrage
   delay(500);
   Serial.println(F("monEcran_setup done."));
 #ifdef CONFIG_ACTIF
   Config::setup(monEcran_display);
   Log::addLog("Config::setup done.");
+  RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
   Serial.println(F("Config::setup done."));
   generic_setup(monEcran_display);
   Log::addLog("generic_setup done.");

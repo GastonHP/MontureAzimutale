@@ -1,0 +1,1 @@
+rated current 0.5A  ==> VRef= .5/2=0.25V

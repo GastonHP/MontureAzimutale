@@ -1,5 +1,6 @@
 #include "Batterie.hpp"
 #include <Arduino.h>
+#include "Log.hpp"
 
 #define PIN_BATTERIE 1              // GPIO 1
 const float facteurDivision = 11.0; // (315+51)/51
@@ -35,4 +36,5 @@ void Batterie::loop(Adafruit_ST7789 *tftptr)
   tftptr->setCursor(120, 48);
   tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
   tftptr->printf("BAT:%.2fV", lireTension());
+  Log::addLog("Batterie voltage: " + String(lireTension(), 2) + "V");
 }
