@@ -79,3 +79,4 @@ les M0, M1 et M2 des DRV8825 sont branchés sur pin 2, 42 et 41 sur esp32
 premier moteur : 42byg304
 alimentation : batterie Bosch 18V avec module XH-M609 coupure à 16V, Hystérésis à 2V et module hw-083 pour le 3.3V 
 alimentation : pont diviseur sur pin 1 du esp32 avec résistances de 300k et 51k
+le code est développé en platformio avec un framework arduino
