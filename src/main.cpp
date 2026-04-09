@@ -38,7 +38,7 @@ void setup()
   SDisk::setup();
   Serial.println(F("Setup after SDisk done."));
 #endif
-unsigned long time = millis()+10000; // Attendre 10 secondes pour laisser le temps à l'utilisateur de voir les messages précédents
+unsigned long time = millis()+0; // Attendre 10 secondes pour laisser le temps à l'utilisateur de voir les messages précédents
   while (millis() < time) {
     // Attente active pour ne pas bloquer les autres tâches (comme l'OTA)
     generic_loop();
@@ -56,9 +56,11 @@ unsigned long time = millis()+10000; // Attendre 10 secondes pour laisser le tem
   monEcran_display("Telescope GPS manager set.");
   Serial.println(F("Telescope::setup done."));
   Log::addLog("Telescope::setup done.");
+  Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
 }
 
 unsigned long nextTime = 0;
+int count = 10;
 
 void loop()
 {
@@ -70,5 +72,10 @@ void loop()
     gpsManager.loop();
     Telescope::loop();
     Batterie::loop(&monEcran);
+    if(count>0 && millis()>nextTime) {
+        nextTime = millis() + 2000;
+        count--;
+        Telescope::steps(-100, 10); // Exemple : déplacer les moteurs de 100 pas
+    }
   }
 }

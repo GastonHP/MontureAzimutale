@@ -20,6 +20,7 @@ public:
     static void pointer(float ascensionDroite, float declinaison);
     static void setGPSManager(GPSManager *gps) { gpsManager = gps; }
     static void commanderMouvement(float cibleAz, float cibleAlt);
+    static void steps(long stepsAz, long stepsAlt);
     static EulerAngles getCurrentAngles() ;
 
 private:

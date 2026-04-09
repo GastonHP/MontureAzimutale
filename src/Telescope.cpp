@@ -335,6 +335,9 @@ void Telescope::setAutomatique(bool autoMode) {
 
 }
 
-EulerAngles Telescope::getCurrentAngles() {
-    return anglesActuels;
+EulerAngles Telescope::getCurrentAngles() {    return anglesActuels;}
+
+void Telescope::steps(long stepsAz, long stepsAlt) {
+    motorAZ.moveSteps(stepsAz);
+    motorALT.moveSteps(stepsAlt);
 }

@@ -21,9 +21,8 @@ void MotorControl::begin()
     pinMode(_m0, OUTPUT);
     pinMode(_m1, OUTPUT);
     pinMode(_m2, OUTPUT);
-    digitalWrite(_m0, HIGH);
-    digitalWrite(_m1, HIGH);
-    digitalWrite(_m2, LOW);
+    pinMode(_pin_sleep, OUTPUT);
+    digitalWrite(_pin_sleep, HIGH); // Sortir du mode sommeil
 
     // 2. Initialisation du moteur de calcul (Engine)
     if (engine == nullptr)
@@ -37,11 +36,13 @@ void MotorControl::begin()
     {
         stepper->setDirectionPin(_dirPin);
         stepper->setEnablePin(_pin_enable);
-        stepper->setAutoEnable(true); // Active le driver seulement lors du mouvement
+        stepper->setAutoEnable(false); // Active le driver seulement lors du mouvement
+        stepper->enableOutputs(); // Active le driver (si autoEnable est false)
+        
 
         stepper->setSpeedInHz(3200);    // Vitesse max (pas/sec)
         stepper->setAcceleration(1000); // Rampe d'accélération
-        setMicrostepping(_microsteps);     // Configurer le microstepping
+        setMicrostepping(_microsteps);  // Configurer le microstepping
     }
 }
 
