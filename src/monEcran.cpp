@@ -12,7 +12,7 @@
 #define TFT_SCLK 12 // Clock out
 #define TFT_WIDTH 240
 #define TFT_HEIGHT 320
-#define TFT_ROTATION 0
+#define TFT_ROTATION 2
 
 Adafruit_ST7789 monEcran = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 

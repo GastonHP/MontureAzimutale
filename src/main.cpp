@@ -7,6 +7,7 @@
 
 #include "EulerAngles.hpp"
 #include "Telescope.hpp"
+#include "WebServer.hpp"
 
 GPSManager gpsManager(18, 17, 9600); // RX=18, TX=17
 
@@ -38,8 +39,9 @@ void setup()
   SDisk::setup();
   Serial.println(F("Setup after SDisk done."));
 #endif
-unsigned long time = millis()+0; // Attendre 10 secondes pour laisser le temps à l'utilisateur de voir les messages précédents
-  while (millis() < time) {
+  unsigned long time = millis() + 0; // Attendre 10 secondes pour laisser le temps à l'utilisateur de voir les messages précédents
+  while (millis() < time)
+  {
     // Attente active pour ne pas bloquer les autres tâches (comme l'OTA)
     generic_loop();
   }
@@ -56,7 +58,11 @@ unsigned long time = millis()+0; // Attendre 10 secondes pour laisser le temps �
   monEcran_display("Telescope GPS manager set.");
   Serial.println(F("Telescope::setup done."));
   Log::addLog("Telescope::setup done.");
-  Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
+  // Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
+  EulerAngles angles = Telescope::getCurrentAngles();
+  angles.roll = 0.0; // Simuler une inclinaison pour tester le niveau à bulle
+  // Telescope::setTarget(angles, 0.5, 50); // Cible les angles actuels pour tester le mode automatique
+  WebServer::setup(&gpsManager);
 }
 
 unsigned long nextTime = 0;
@@ -64,18 +70,29 @@ int count = 10;
 
 void loop()
 {
-
   generic_loop();
-
-  if (!OTA::started())
+  if (OTA::started())
   {
-    gpsManager.loop();
-    Telescope::loop();
-    Batterie::loop(&monEcran);
-    if(count>0 && millis()>nextTime) {
-        nextTime = millis() + 2000;
-        count--;
-        Telescope::steps(-100, 10); // Exemple : déplacer les moteurs de 100 pas
-    }
+    Telescope::stop(); // Arrête les moteurs avant de faire quoi que ce soit d'autre
+    WebServer::loop(OTA::started());
+    return;
   }
+
+  WebServer::loop(OTA::started());
+
+  gpsManager.loop();
+  Telescope::loop();
+  Batterie::loop(&monEcran);
+  // if (count > 0 && millis() > nextTime)
+  // {
+  //   nextTime = millis() + 2000;
+  //   count--;
+  //   Telescope::steps(-100, 100); // Exemple : déplacer les moteurs de 100 pas
+  // }
+  // if (count == 0 && millis() > nextTime)
+  // {
+  //   nextTime = millis() + 2000;
+  //   count--;
+  //   Telescope::steps(1000, -1000); // Exemple : déplacer les moteurs de 100 pas
+  // }
 }

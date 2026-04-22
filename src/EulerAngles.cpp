@@ -34,6 +34,18 @@ EulerAngles EulerAngles::getEulerFromQuaternion(float i, float j, float k, float
     angles.roll *= 180.0 / M_PI;
     angles.pitch *= 180.0 / M_PI;
     angles.yaw *= 180.0 / M_PI;
+    while (angles.roll < 0)
+        angles.roll += 360; // Normaliser entre 0 et 360
+    while (angles.roll >= 360)
+        angles.roll -= 360;
+    while (angles.pitch < 0)
+        angles.pitch += 360; // Normaliser entre 0 et 360
+    while (angles.pitch >= 360)
+        angles.pitch -= 360;
+    while (angles.yaw < 0)
+        angles.yaw += 360; // Normaliser entre 0 et 360
+    while (angles.yaw >= 360)
+        angles.yaw -= 360;
 
     return angles;
 }

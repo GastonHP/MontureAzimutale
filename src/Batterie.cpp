@@ -10,7 +10,7 @@ float Batterie::lireTension()
 
   static float lastV = 0.0;
   // Lecture brute (0 à 4095)
-  int raw = analogRead(PIN_BATTERIE);
+  float raw = (float)analogRead(PIN_BATTERIE);
 
   // Conversion en tension sur la pin (en tenant compte de l'atténuation 11dB par défaut)
   float vPin = (raw / 4095.0) * 3.3;

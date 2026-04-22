@@ -20,10 +20,10 @@ static sh2_SensorValue_t sensorValue;
 #define PIN_M2 41
 
 #define PIN_EN 16
-#define PIN_SLEEP 3
+#define PIN_SLEEP 38
 
-MotorControl Telescope::motorAZ( PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
-MotorControl Telescope::motorALT( PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
+MotorControl Telescope::motorAZ(PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
+MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
 GPSManager *Telescope::gpsManager = nullptr;
 
 EulerAngles Telescope::anglesActuels = EulerAngles(0.0f, 0.0f, 0.0f);
@@ -49,7 +49,7 @@ void Telescope::setup(Adafruit_ST7789 *tftptr)
 {
     Telescope::tftptr = tftptr;
     setAutomatique(false); // Par défaut, on démarre en mode manuel
-    Wire.begin(sda_pin, scl_pin);
+    Wire.begin(sda_pin, scl_pin, 400000); // Initialisation du bus I2C à 400 kHz
     if (!bno08x.begin_I2C(0x4B, &Wire))
     {
         tftptr->setTextColor(ST77XX_RED);
@@ -80,8 +80,8 @@ void Telescope::setup(Adafruit_ST7789 *tftptr)
     {
         Serial.println("Could not enable AR/VR stabilized rotation vector");
     }
-    motorAZ.begin();  
-    motorALT.begin(); 
+    motorAZ.begin();
+    motorALT.begin();
 
     Serial.println("Moteurs prêts en mode 1/32 step.");
 }
@@ -212,6 +212,7 @@ float Telescope::calculerAzimutVrai(float azimutMagnetique)
 
 #define FrequenceDeBoucle 10 // 10 Hz
 static unsigned long nextLoop = 0;
+static double lastRoll = -9999.0;
 void Telescope::loop()
 {
     float accuracy;
@@ -263,6 +264,7 @@ void Telescope::loop()
         display_angles(anglesActuels);
         dessinerNiveauVif(anglesActuels);
         dessinerBoussole(anglesActuels, true); // true ==> azimuth vrai
+        //commanderMouvement(anglesAAtteindre.yaw, anglesAAtteindre.pitch);
     }
 }
 
@@ -310,19 +312,24 @@ void Telescope::pointer(float ascensionDroite, float declinaison)
     commanderMouvement(star_hor.azimuth, star_hor.altitude);
 }
 
-void Telescope::commanderMouvement(float cibleAz, float cibleAlt) {
-
+void Telescope::commanderMouvement(float cibleAz, float cibleAlt)
+{
+    // Ne pas lancer une nouvelle commande si les moteurs sont déjà en mouvement
+    if(isMoving())
+        return; 
     // 2. Calculer l'erreur (différence)
     float erreurAz = cibleAz - anglesActuels.yaw;
-    float erreurAlt = cibleAlt - anglesActuels.pitch;
+    float erreurAlt = cibleAlt - anglesActuels.roll;
 
     // Gestion du passage 360/0 pour l'Azimut
-    if (erreurAz > 180) erreurAz -= 360;
-    if (erreurAz < -180) erreurAz += 360;
+    if (erreurAz > 180)
+        erreurAz -= 360;
+    if (erreurAz < -180)
+        erreurAz += 360;
 
     // 3. Conversion en pas (Ratio AZ-Pronto ~120:1)
     // 21333 pas = 360° / (120 * 200 * 32) -> environ 2133 pas par degré
-    long pasAZ = erreurAz * 2133; 
+    long pasAZ = erreurAz * 2133;
     long pasALT = erreurAlt * 2133;
 
     // 4. Lancer les moteurs (en tâche de fond avec les Timers)
@@ -330,14 +337,21 @@ void Telescope::commanderMouvement(float cibleAz, float cibleAlt) {
     motorALT.moveSteps(pasALT);
 }
 
-void Telescope::setAutomatique(bool autoMode) {
+void Telescope::setAutomatique(bool autoMode)
+{
     automatique = autoMode;
-
 }
 
-EulerAngles Telescope::getCurrentAngles() {    return anglesActuels;}
+EulerAngles Telescope::getCurrentAngles() { return anglesActuels; }
 
-void Telescope::steps(long stepsAz, long stepsAlt) {
+void Telescope::steps(long stepsAz, long stepsAlt)
+{
     motorAZ.moveSteps(stepsAz);
     motorALT.moveSteps(stepsAlt);
+}
+
+void Telescope::stop()
+{
+    motorAZ.moveSteps(0);
+    motorALT.moveSteps(0);
 }

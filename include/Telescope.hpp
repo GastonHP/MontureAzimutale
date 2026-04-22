@@ -21,7 +21,9 @@ public:
     static void setGPSManager(GPSManager *gps) { gpsManager = gps; }
     static void commanderMouvement(float cibleAz, float cibleAlt);
     static void steps(long stepsAz, long stepsAlt);
+    static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
     static EulerAngles getCurrentAngles() ;
+    static void stop();
 
 private:
     static void display_angles(EulerAngles angles);

@@ -36,8 +36,8 @@ void MotorControl::begin()
     {
         stepper->setDirectionPin(_dirPin);
         stepper->setEnablePin(_pin_enable);
-        stepper->setAutoEnable(false); // Active le driver seulement lors du mouvement
-        stepper->enableOutputs(); // Active le driver (si autoEnable est false)
+        stepper->setAutoEnable(true); // Active le driver seulement lors du mouvement
+        //stepper->enableOutputs(); // Active le driver (si autoEnable est false)
         
 
         stepper->setSpeedInHz(3200);    // Vitesse max (pas/sec)
