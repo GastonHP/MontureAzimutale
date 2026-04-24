@@ -23,7 +23,7 @@ float Batterie::lireTension()
     lastV = 0.9 * lastV + 0.1 * vBat;
 
   // Calibration fine (ajustez ce petit décalage après mesure au multimètre)
-  return lastV; // + 0.2;
+  return lastV + 0.2;
 }
 
 void Batterie::loop(Adafruit_ST7789 *tftptr)

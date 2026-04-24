@@ -79,7 +79,6 @@ void loop()
   }
 
   WebServer::loop(OTA::started());
-
   gpsManager.loop();
   Telescope::loop();
   Batterie::loop(&monEcran);

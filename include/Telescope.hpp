@@ -25,6 +25,9 @@ public:
     static EulerAngles getCurrentAngles() ;
     static void stop();
 
+    static float accuracy;
+    static uint8_t precision;
+
 private:
     static void display_angles(EulerAngles angles);
     static void dessinerBoussole(EulerAngles angles, bool vraiNord = true);
@@ -40,6 +43,7 @@ private:
     static float maxSpeed;
 
     static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
+    
     static Adafruit_ST7789 *tftptr;
 
     static bool setupOK;

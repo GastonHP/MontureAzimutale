@@ -25,6 +25,9 @@ const char index_html[] PROGMEM = R"rawliteral(
     
     <div class="card"><div>Inclinaison</div><div id="alt" class="value">0.0°</div></div>
     <div class="card"><div>Azimut</div><div id="azi" class="value">0.0°</div></div>
+    <div class="card"><div>Pitch</div><div id="pitch" class="value">0.0°</div></div>
+    <div class="card"><div>ACC</div><div id="accuracy" class="value">0.0</div></div>
+    <div class="card"><div>PREC</div><div id="precision" class="value">0</div></div>    
     <div class="card"><div>Batterie</div><div id="batt" class="value">-- V</div></div>
     <div class="card"><div>Sats</div><div id="sats" class="value">0</div></div>
 
@@ -33,7 +36,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         <button class="btn" onclick="move('left')">left</button>
         <button class="btn" style="background:#d32f2f" onclick="move('stop')">stop</button>
         <button class="btn" onclick="move('right')">right</button><br>
-        <button class="btn" onclick="move('down')">down</button>
+        <button class="btn" onclick="move('down')">down</button><br>
+        <br>
+        <button class="btn" onclick="move('calibrate')">calibration</button><br>
     </div>
 
     <script>
@@ -44,8 +49,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             var source = new EventSource('/events');
             source.addEventListener('data_update', function(e) {
                 var obj = JSON.parse(e.data);
-                document.getElementById('alt').innerHTML = obj.alt + "°";
-                document.getElementById('azi').innerHTML = obj.azi + "°";
+                document.getElementById('alt').innerHTML = obj.alt + "&deg;"; // ° est un caractère spécial, on peut aussi utiliser "°"
+                document.getElementById('azi').innerHTML = obj.azi + "&deg;";
+                document.getElementById('pitch').innerHTML = obj.pitch + "&deg;";
+                document.getElementById('accuracy').innerHTML = obj.accuracy;
+                document.getElementById('precision').innerHTML = obj.precision;
                 document.getElementById('batt').innerHTML = obj.batt + " V";
                 document.getElementById('sats').innerHTML = obj.sats;
             }, false);
@@ -78,6 +86,21 @@ void WebServer::setup(GPSManager *manager)
             if (dir == "stop") {
                 Telescope::stop();
             }
+            unsigned long timeToWait=1000; // 1 seconde
+            if(dir == "calibrate") {
+                for(int i=0;i<2;i++) {
+                    Telescope::steps(0, 200); // Mouvement rapide pour sortir d'éventuels obstacles
+                    delay(timeToWait);
+                    Telescope::steps(0, -200); // Retour à la position initiale
+                    delay(timeToWait);
+                    Telescope::steps(200, 0); // Mouvement rapide pour sortir d'éventuels obstacles
+                    delay(timeToWait);
+                    Telescope::steps(-200, 0); // Retour à la position initiale 
+                    delay(timeToWait);                   
+                }
+                // Exemple de calibration: pointer vers une étoile connue
+                //Telescope::pointer(5.9195, 7.4071); // Bételgeuse (RA=5h55m, Dec=+7°24')
+            }
         }
         request->send(200, "text/plain", "OK"); });
 
@@ -103,17 +126,22 @@ void WebServer::loop(bool stopping)
     if (millis() - lastUpdate > 500)
     {
         // Calcul batterie (pont 300k/51k)
-        float batt = Batterie::lireTension();// * (300.0 + 51.0) / 51.0;
+        float batt = Batterie::lireTension(); // * (300.0 + 51.0) / 51.0;
 
         // Récupération angles BNO (à adapter selon votre lib)
         EulerAngles angles = Telescope::getCurrentAngles();
-        float currentAlt = angles.roll; // Inclinaison
-        float currentAzi = angles.yaw;  // Azimut
+        float currentAlt = angles.roll;       // Inclinaison
+        float currentAzi = angles.yaw;        // Azimut
+        float currentPitch = angles.pitch;    // Non utilisé pour l'instant
+        float accuracy = Telescope::accuracy; // Précision du capteur
 
         // Création du message JSON pour le Web
         String json = "{";
         json += "\"alt\":\"" + String(currentAlt, 1) + "\",";
         json += "\"azi\":\"" + String(currentAzi, 1) + "\",";
+        json += "\"pitch\":\"" + String(currentPitch, 1) + "\",";
+        json += "\"accuracy\":\"" + String(accuracy, 1) + "\",";
+        json += "\"precision\":\"" + String(Telescope::precision) + "\",";
         json += "\"batt\":\"" + String(batt, 1) + "\",";
         json += "\"sats\":\"" + String(gpsManager->satellites()) + "\"";
         json += "}";
@@ -124,4 +152,3 @@ void WebServer::loop(bool stopping)
         lastUpdate = millis();
     }
 }
-

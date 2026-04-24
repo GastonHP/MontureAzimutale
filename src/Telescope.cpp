@@ -213,9 +213,12 @@ float Telescope::calculerAzimutVrai(float azimutMagnetique)
 #define FrequenceDeBoucle 10 // 10 Hz
 static unsigned long nextLoop = 0;
 static double lastRoll = -9999.0;
+
+float Telescope::accuracy = 0.0f;
+uint8_t Telescope::precision = 0;
+
 void Telescope::loop()
-{
-    float accuracy;
+{    
     if (millis() < nextLoop)
         return;
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
@@ -232,7 +235,7 @@ void Telescope::loop()
     }
     // On récupère le statut global de la précision
     // sensorValue.status contient la valeur (0 à 3)
-    uint8_t precision = sensorValue.status & 0x03;
+    precision = sensorValue.status & 0x03;
 
     // Affichage graphique simple de la précision (vert = 3, cyan = 2, rouge = 0 ou 1)
     switch (precision)
