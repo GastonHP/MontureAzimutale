@@ -3,13 +3,13 @@
 
 static FastAccelStepperEngine *engine = nullptr;
 
-MotorControl::MotorControl(int step, int dir, int m0, int m1, int m2, int pin_enable, int pin_sleep)
+MotorControl::MotorControl(int pin_step, int pin_dir, int pin_m0, int pin_m1, int pin_m2, int pin_enable, int pin_sleep)
 {
-    this->_stepPin = step;
-    this->_dirPin = dir;
-    this->_m0 = m0;
-    this->_m1 = m1;
-    this->_m2 = m2;
+    this->_stepPin = pin_step;
+    this->_dirPin = pin_dir;
+    this->_m0 = pin_m0;
+    this->_m1 = pin_m1;
+    this->_m2 = pin_m2;
     this->_pin_enable = pin_enable;
     this->_pin_sleep = pin_sleep;
     this->_microsteps = 32; // Par défaut pour le suivi astro
@@ -37,10 +37,9 @@ void MotorControl::begin()
         stepper->setDirectionPin(_dirPin);
         stepper->setEnablePin(_pin_enable);
         stepper->setAutoEnable(true); // Active le driver seulement lors du mouvement
-        //stepper->enableOutputs(); // Active le driver (si autoEnable est false)
-        
+        // stepper->enableOutputs(); // Active le driver (si autoEnable est false)
 
-        stepper->setSpeedInHz(3200);    // Vitesse max (pas/sec)
+        stepper->setSpeedInHz(400);     // 3200);    // Vitesse max (pas/sec)
         stepper->setAcceleration(1000); // Rampe d'accélération
         setMicrostepping(_microsteps);  // Configurer le microstepping
     }

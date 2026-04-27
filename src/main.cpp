@@ -74,11 +74,12 @@ void loop()
   if (OTA::started())
   {
     Telescope::stop(); // Arrête les moteurs avant de faire quoi que ce soit d'autre
-    WebServer::loop(OTA::started());
+    WebServer::stop();
+    gpsManager.stop();
     return;
   }
 
-  WebServer::loop(OTA::started());
+  WebServer::loop();
   gpsManager.loop();
   Telescope::loop();
   Batterie::loop(&monEcran);

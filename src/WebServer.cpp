@@ -23,14 +23,17 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
     <h1>Telescope S3</h1>
     
-    <div class="card"><div>Inclinaison</div><div id="alt" class="value">0.0°</div></div>
-    <div class="card"><div>Azimut</div><div id="azi" class="value">0.0°</div></div>
-    <div class="card"><div>Pitch</div><div id="pitch" class="value">0.0°</div></div>
-    <div class="card"><div>ACC</div><div id="accuracy" class="value">0.0</div></div>
-    <div class="card"><div>PREC</div><div id="precision" class="value">0</div></div>    
+    <div class="card"><div>Azimut/yaw<br>Direction</div><div id="azi" class="value">0.0°</div></div>
+    <div class="card"><div>Inclinaison/roll<br>Altitude</div><div id="alt" class="value">0.0°</div></div>
+    <div class="card"><div>Roulis/pitch<br>Angle</div><div id="pitch" class="value">0.0°</div></div>
+    <br>
+    <div class="card"><div>Accuracy</div><div id="accuracy" class="value">0.0</div></div>
+    <div class="card"><div>Pr&eacute;cision</div><div id="precision" class="value">0</div></div>    
     <div class="card"><div>Batterie</div><div id="batt" class="value">-- V</div></div>
     <div class="card"><div>Sats</div><div id="sats" class="value">0</div></div>
-
+    <br>
+    <div class="card"><div>deltaAZ</div><div id="deltaAZ" class="value">0</div></div>
+    <div class="card"><div>deltaALT</div><div id="deltaALT" class="value">0</div></div>
     <div style="margin-top:20px;">
         <button class="btn" onclick="move('up')">up</button><br>
         <button class="btn" onclick="move('left')">left</button>
@@ -56,6 +59,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                 document.getElementById('precision').innerHTML = obj.precision;
                 document.getElementById('batt').innerHTML = obj.batt + " V";
                 document.getElementById('sats').innerHTML = obj.sats;
+                document.getElementById('deltaALT').innerHTML = obj.deltaALT;
+                document.getElementById('deltaAZ').innerHTML = obj.deltaAZ;
             }, false);
         }
     </script>
@@ -75,7 +80,8 @@ void WebServer::setup(GPSManager *manager)
     // Route pour les commandes de mouvement
     server.on("/control", HTTP_GET, [](AsyncWebServerRequest *request)
               {
-        if (request->hasParam("dir")) {
+        if (request->hasParam("dir")) 
+        {
             String dir = request->getParam("dir")->value();
             Serial.println("Commande reçue: " + dir);
             // Ici, vous pouvez appeler les fonctions de contrôle du télescope en fonction de 'dir'
@@ -83,24 +89,8 @@ void WebServer::setup(GPSManager *manager)
             if (dir == "down")  Telescope::steps(0,-100);
             if (dir == "left")  Telescope::steps(-100,0);   // 100 pas en Azimut
             if (dir == "right") Telescope::steps(100,0);
-            if (dir == "stop") {
-                Telescope::stop();
-            }
-            unsigned long timeToWait=1000; // 1 seconde
-            if(dir == "calibrate") {
-                for(int i=0;i<2;i++) {
-                    Telescope::steps(0, 200); // Mouvement rapide pour sortir d'éventuels obstacles
-                    delay(timeToWait);
-                    Telescope::steps(0, -200); // Retour à la position initiale
-                    delay(timeToWait);
-                    Telescope::steps(200, 0); // Mouvement rapide pour sortir d'éventuels obstacles
-                    delay(timeToWait);
-                    Telescope::steps(-200, 0); // Retour à la position initiale 
-                    delay(timeToWait);                   
-                }
-                // Exemple de calibration: pointer vers une étoile connue
-                //Telescope::pointer(5.9195, 7.4071); // Bételgeuse (RA=5h55m, Dec=+7°24')
-            }
+            if (dir == "stop")  Telescope::stop();            
+            if(dir == "calibrate") Telescope::calibrate();
         }
         request->send(200, "text/plain", "OK"); });
 
@@ -110,18 +100,21 @@ void WebServer::setup(GPSManager *manager)
 
 static bool stopped = false;
 
-void WebServer::loop(bool stopping)
+void WebServer::stop()
 {
-    if (stopping)
+    if (!stopped)
     {
-        if (!stopped)
-        {
-            Serial.println("Arrêt du serveur Web...");
-            stopped = true;
-            server.end();
-        }
-        return;
+        Serial.println("Arrêt du serveur Web...");
+        stopped = true;
+        server.end();
     }
+}
+
+void WebServer::loop()
+{
+    if (stopped)
+        return;
+
     static unsigned long lastUpdate = 0;
     if (millis() - lastUpdate > 500)
     {
@@ -143,7 +136,9 @@ void WebServer::loop(bool stopping)
         json += "\"accuracy\":\"" + String(accuracy, 1) + "\",";
         json += "\"precision\":\"" + String(Telescope::precision) + "\",";
         json += "\"batt\":\"" + String(batt, 1) + "\",";
-        json += "\"sats\":\"" + String(gpsManager->satellites()) + "\"";
+        json += "\"sats\":\"" + String(gpsManager->satellites()) + "\",";
+        json += "\"deltaALT\":\"" + String(Telescope::deltaALT.toString()) + "\",";
+        json += "\"deltaAZ\":\"" + String(Telescope::deltaAZ.toString()) + "\"";
         json += "}";
 
         // Envoi aux clients Web connectés

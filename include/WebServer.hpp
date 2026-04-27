@@ -9,7 +9,8 @@ class WebServer
 {
 public:
     static void setup(GPSManager *manager);
-    static void loop(bool stopping = false);
+    static void loop();
+    static void stop();
 
 private:
     static AsyncWebServer server;

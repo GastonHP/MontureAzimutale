@@ -20,13 +20,18 @@ public:
     static void pointer(float ascensionDroite, float declinaison);
     static void setGPSManager(GPSManager *gps) { gpsManager = gps; }
     static void commanderMouvement(float cibleAz, float cibleAlt);
+    static void setMicrostepping(int ms);
+    static void calibrate();
     static void steps(long stepsAz, long stepsAlt);
     static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
-    static EulerAngles getCurrentAngles() ;
+    static EulerAngles getCurrentAngles(bool forceUpdate = false);
     static void stop();
 
     static float accuracy;
     static uint8_t precision;
+
+    static EulerAngles deltaAZ;
+    static EulerAngles deltaALT;
 
 private:
     static void display_angles(EulerAngles angles);
@@ -43,7 +48,7 @@ private:
     static float maxSpeed;
 
     static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
-    
+
     static Adafruit_ST7789 *tftptr;
 
     static bool setupOK;

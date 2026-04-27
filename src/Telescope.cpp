@@ -27,6 +27,8 @@ MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_
 GPSManager *Telescope::gpsManager = nullptr;
 
 EulerAngles Telescope::anglesActuels = EulerAngles(0.0f, 0.0f, 0.0f);
+EulerAngles Telescope::deltaAZ = EulerAngles(0.0f, 0.0f, 0.0f);
+EulerAngles Telescope::deltaALT = EulerAngles(0.0f, 0.0f, 0.0f);
 Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(-1); // Utilisation du même reset pin que dans bno08x.cpp
 EulerAngles Telescope::anglesAAtteindre = EulerAngles(0.0f, 0.0f, 0.0f);
 Adafruit_ST7789 *Telescope::tftptr = nullptr;
@@ -35,11 +37,12 @@ float Telescope::maxSpeed = 1.0;  // Vitesse maximale par défaut
 bool Telescope::setupOK = false;
 bool Telescope::automatique = false;
 
+#define interval_us 50000 // 10000 // Intervalle de 10 ms pour les rapports de capteurs
 void Telescope::setReports()
 {
     // Ici, vous pouvez activer les rapports de capteurs que vous souhaitez recevoir
     // Par exemple, pour obtenir les angles d'Euler stabilisés pour la réalité augmentée :
-    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV))
+    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV, interval_us))
     {
         Serial.println("Could not enable AR/VR stabilized rotation vector");
     }
@@ -48,7 +51,7 @@ void Telescope::setReports()
 void Telescope::setup(Adafruit_ST7789 *tftptr)
 {
     Telescope::tftptr = tftptr;
-    setAutomatique(false); // Par défaut, on démarre en mode manuel
+    setAutomatique(false);                // Par défaut, on démarre en mode manuel
     Wire.begin(sda_pin, scl_pin, 400000); // Initialisation du bus I2C à 400 kHz
     if (!bno08x.begin_I2C(0x4B, &Wire))
     {
@@ -81,8 +84,30 @@ void Telescope::setup(Adafruit_ST7789 *tftptr)
         Serial.println("Could not enable AR/VR stabilized rotation vector");
     }
     motorAZ.begin();
+    motorAZ.setMicrostepping(32); // Mode 1/16 pour plus de précision
     motorALT.begin();
+    motorALT.setMicrostepping(32); // Mode 1/16 pour plus de précision
 
+    if (deltaALT.isNull() && deltaAZ.isNull())
+    {
+        Telescope::stop();
+        EulerAngles angles = getCurrentAngles(true).copie();
+        Telescope::steps(100, 0); // Test de mouvement sur l'axe AZ
+        delay(2000);              // Attendre que le mouvement soit terminé
+        EulerAngles newAngles = getCurrentAngles(true).copie();
+        deltaAZ = EulerAngles(
+            newAngles.yaw - angles.yaw,
+            newAngles.pitch - angles.pitch,
+            newAngles.roll - angles.roll);
+        angles = getCurrentAngles(true).copie();
+        Telescope::steps(0, 100); // Test de mouvement sur l'axe ALT
+        delay(2000);              // Attendre que le mouvement soit terminé
+        newAngles = getCurrentAngles(true).copie();
+        deltaALT = EulerAngles(
+            newAngles.yaw - angles.yaw,     // À ajuster en fonction de l'orientation du capteur
+            newAngles.pitch - angles.pitch, // À ajuster en fonction de l'orientation du capteur
+            newAngles.roll - angles.roll);  // À ajuster en fonction de l'orientation du capteur
+    }
     Serial.println("Moteurs prêts en mode 1/32 step.");
 }
 
@@ -210,7 +235,7 @@ float Telescope::calculerAzimutVrai(float azimutMagnetique)
     return azimutVrai;
 }
 
-#define FrequenceDeBoucle 10 // 10 Hz
+#define FrequenceDeBoucle 5 // 10 Hz
 static unsigned long nextLoop = 0;
 static double lastRoll = -9999.0;
 
@@ -218,24 +243,13 @@ float Telescope::accuracy = 0.0f;
 uint8_t Telescope::precision = 0;
 
 void Telescope::loop()
-{    
+{
     if (millis() < nextLoop)
         return;
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK)
         return;
-    if (bno08x.wasReset())
-    {
-        Serial.print("sensor was reset ");
-        setReports();
-    }
-    if (!bno08x.getSensorEvent(&sensorValue))
-    {
-        return;
-    }
-    // On récupère le statut global de la précision
-    // sensorValue.status contient la valeur (0 à 3)
-    precision = sensorValue.status & 0x03;
+    Telescope::getCurrentAngles();
 
     // Affichage graphique simple de la précision (vert = 3, cyan = 2, rouge = 0 ou 1)
     switch (precision)
@@ -250,25 +264,12 @@ void Telescope::loop()
         tftptr->setTextColor(ST77XX_RED, ST77XX_BLACK);
     }
     tftptr->setCursor(0, 32);
-    tftptr->printf("ACC:%d", precision);
-    // Lire les angles actuels depuis le BNO08x
-    if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV)
-    {
-        anglesActuels = EulerAngles::getEulerFromQuaternion(
-            sensorValue.un.arvrStabilizedRV.i,
-            sensorValue.un.arvrStabilizedRV.j,
-            sensorValue.un.arvrStabilizedRV.k,
-            sensorValue.un.arvrStabilizedRV.real);
+    tftptr->printf("PREC:%d", precision);
 
-        // À ajouter dans votre fonction afficherInterface
-        accuracy = sensorValue.un.arvrStabilizedRV.accuracy; // 0 = Invalide, 3 = Précision max
-        tftptr->setCursor(72, 32);
-        tftptr->printf("CAL: %f", accuracy);
-        display_angles(anglesActuels);
-        dessinerNiveauVif(anglesActuels);
-        dessinerBoussole(anglesActuels, true); // true ==> azimuth vrai
-        //commanderMouvement(anglesAAtteindre.yaw, anglesAAtteindre.pitch);
-    }
+    display_angles(anglesActuels);
+    dessinerNiveauVif(anglesActuels);
+    dessinerBoussole(anglesActuels, true); // true ==> azimuth vrai
+                                           // commanderMouvement(anglesAAtteindre.yaw, anglesAAtteindre.pitch);
 }
 
 void Telescope::setTarget(EulerAngles target, float tolerance, float maxSpeed)
@@ -318,8 +319,8 @@ void Telescope::pointer(float ascensionDroite, float declinaison)
 void Telescope::commanderMouvement(float cibleAz, float cibleAlt)
 {
     // Ne pas lancer une nouvelle commande si les moteurs sont déjà en mouvement
-    if(isMoving())
-        return; 
+    if (isMoving())
+        return;
     // 2. Calculer l'erreur (différence)
     float erreurAz = cibleAz - anglesActuels.yaw;
     float erreurAlt = cibleAlt - anglesActuels.roll;
@@ -345,10 +346,63 @@ void Telescope::setAutomatique(bool autoMode)
     automatique = autoMode;
 }
 
-EulerAngles Telescope::getCurrentAngles() { return anglesActuels; }
+EulerAngles Telescope::getCurrentAngles(bool forceUpdate)
+{
+    if (bno08x.wasReset())
+    {
+        Serial.print("sensor was reset ");
+        setReports();
+    }
+    bool hasNewData = bno08x.getSensorEvent(&sensorValue);
+    if (!hasNewData && !forceUpdate)
+    {
+        return anglesActuels;
+    }
+    unsigned long startTime = millis();
+    while (!hasNewData && millis() - startTime < 1000) // Attendre jusqu'à 1000 ms pour obtenir de nouvelles données
+    {
+        delay(10);
+        hasNewData = bno08x.getSensorEvent(&sensorValue);
+    }
+    if (hasNewData)
+    {
+        Serial.println("Nouvelles données du capteur reçues.");
+    }
+    else
+    {
+        Serial.println("Aucune nouvelle donnée du capteur après 1 seconde.");
+        return anglesActuels; // Retourner les derniers angles connus si aucune nouvelle donnée
+    }
+    while (hasNewData)
+    {
+        // On récupère le statut global de la précision
+        // sensorValue.status contient la valeur (0 à 3)
+        precision = sensorValue.status & 0x03;
+
+        // Lire les angles actuels depuis le BNO08x
+        if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV)
+        {
+            anglesActuels = EulerAngles::getEulerFromQuaternion(
+                sensorValue.un.arvrStabilizedRV.i,
+                sensorValue.un.arvrStabilizedRV.j,
+                sensorValue.un.arvrStabilizedRV.k,
+                sensorValue.un.arvrStabilizedRV.real);
+
+            // À ajouter dans votre fonction afficherInterface
+            accuracy = sensorValue.un.arvrStabilizedRV.accuracy; // 0 = Invalide, 3 = Précision max
+        }
+        hasNewData = bno08x.getSensorEvent(&sensorValue);
+    }
+    return anglesActuels;
+}
 
 void Telescope::steps(long stepsAz, long stepsAlt)
 {
+    while (isMoving())
+    {
+        // Attendre que les moteurs soient prêts pour une nouvelle commande
+        delay(100);
+    }
     motorAZ.moveSteps(stepsAz);
     motorALT.moveSteps(stepsAlt);
 }
@@ -357,4 +411,51 @@ void Telescope::stop()
 {
     motorAZ.moveSteps(0);
     motorALT.moveSteps(0);
+}
+
+void Telescope::calibrate()
+{
+    unsigned long timeToWait = 1000; // 1 seconde
+    setMicrostepping(32);            // Mode 1/8 pour un calibrage plus rapide
+    for (int i = 0; i < 1; i++)
+    {
+        Telescope::steps(0, 300); // Mouvement rapide pour sortir d'éventuels obstacles
+        while (isMoving())
+            delay(100);
+        Telescope::steps(0, -300); // Retour à la position initiale
+        while (isMoving())
+            delay(100);
+        Telescope::steps(300, 0); // Mouvement rapide pour sortir d'éventuels obstacles
+        while (isMoving())
+            delay(100);
+        Telescope::steps(-300, 0); // Retour à la position initiale
+        while (isMoving())
+            delay(100);
+    }
+
+    // Telescope::stop();
+    // EulerAngles angles = getCurrentAngles(true).copie();
+    // Telescope::steps(100, 0); // Test de mouvement sur l'axe AZ
+    // delay(2000);              // Attendre que le mouvement soit terminé
+    // EulerAngles newAngles = getCurrentAngles(true).copie();
+    // deltaAZ = EulerAngles(
+    //     newAngles.yaw - angles.yaw,
+    //     newAngles.pitch - angles.pitch,
+    //     newAngles.roll - angles.roll);
+    // angles = getCurrentAngles(true).copie();
+    // Telescope::steps(0, 100); // Test de mouvement sur l'axe ALT
+    // delay(2000);              // Attendre que le mouvement soit terminé
+    // newAngles = getCurrentAngles(true).copie();
+    // deltaALT = EulerAngles(
+    //     newAngles.yaw - angles.yaw,     // À ajuster en fonction de l'orientation du capteur
+    //     newAngles.pitch - angles.pitch, // À ajuster en fonction de l'orientation du capteur
+    //     newAngles.roll - angles.roll);  // À ajuster en fonction de l'orientation du capteur
+    // Telescope::steps(-100, 0);
+    // Telescope::steps(0, -100);
+}
+
+void Telescope::setMicrostepping(int ms)
+{
+    motorAZ.setMicrostepping(ms);
+    motorALT.setMicrostepping(ms);
 }

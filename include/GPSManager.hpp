@@ -21,6 +21,7 @@ public:
     int satellites();
     void configureGPS();
     String timeString();
+    void stop();
   
 private:
     int _rx, _tx, _baud;

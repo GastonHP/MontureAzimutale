@@ -38,6 +38,12 @@ void GPSManager::setup(Adafruit_ST7789 *monEcranptr)
     gpsSerial.println(DISABLE_VTG);
 }
 
+void GPSManager::stop()
+{
+    gpsSerial.end();
+    portStatusValue = Closed;
+}
+
 unsigned long nextFix = 0;
 
 void GPSManager::loop()
