@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Telescope Control Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background: #1a1a1a;
+            color: #eee;
+        }
+
+        .card {
+            background: #333;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        .value {
+            font-size: 1.2em;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 20px;
+            font-size: 20px;
+            width: 80px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background: #444;
+            color: white;
+        }
+
+        .btn:active {
+            background: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Telescope S3</h1>
+    <div class="card">
+        <div>Azimut/yaw<br>Direction</div>
+        <div id="yaw" class="value">0.0°</div>
+        <div id="deltaAZ" class="value">0</div>
+    </div>
+    <div class="card">
+        <div>Inclinaison/pitch<br>Altitude</div>
+        <div id="pitch" class="value">0.0°</div>
+        <div id="deltaALT" class="value">0</div>
+    </div>
+    <div class="card">
+        <div>Roulis/roll<br>Angle</div>
+        <div id="roll" class="value">0.0°<br>&nbsp;</div>
+    </div>
+    <div class="card">
+        <div>Accuracy<br>Pr&eacute;cision</div>
+        <div id="accuracy" class="value">0.0</div>
+        <div id="precision" class="value">0</div>
+    </div>
+    <div class="card">
+        <div>Batterie</div>
+        <div id="batt" class="value">-- V</div>
+    </div>
+    <div class="card">
+        <div>Sats</div>
+        <div id="sats" class="value">0</div>
+    </div>
+    <br>
+    <div style="margin-top:20px;">
+        <button class="btn" onclick="move('up')">up</button><br>
+        <button class="btn" onclick="move('left')">left</button>
+        <button class="btn" style="background:#d32f2f" onclick="move('stop')">stop</button>
+        <button class="btn" onclick="move('right')">right</button><br>
+        <button class="btn" onclick="move('down')">down</button><br>
+    </div>
+    <div style="margin-top:20px;">
+        <button class="btn" style="background:#37ad51; width: 130px;" onclick="move('origine')">origine</button>
+        <button class="btn" style="background:#4f3ba3;width: 130px;" onclick="move('calibrate')">calibration</button>
+        <button class="btn" style="background:#4f3ba3;width: 130px;"
+            onclick="move('calibrateMVT')">calibration<br>mouvement</button><br>
+    </div>
+    <script>
+        function move(dir) { fetch('/control?dir=' + dir); }
+        // Écoute les mises à jour automatiques du serveur
+        if (!!window.EventSource) {
+            var source = new EventSource('/events');
+            source.addEventListener('data_update', function (e) {
+                var obj = JSON.parse(e.data);
+                document.getElementById('yaw').innerHTML = obj.yaw + "&deg;"; // ° est un caractère spécial, on peut aussi utiliser "°"
+                document.getElementById('pitch').innerHTML = obj.pitch + "&deg;";
+                document.getElementById('roll').innerHTML = obj.roll + "&deg;";
+                document.getElementById('accuracy').innerHTML = obj.accuracy;
+                document.getElementById('precision').innerHTML = obj.precision;
+                document.getElementById('batt').innerHTML = obj.batt + " V";
+                document.getElementById('sats').innerHTML = obj.sats;
+                document.getElementById('deltaALT').innerHTML = obj.deltaALT;
+                document.getElementById('deltaAZ').innerHTML = obj.deltaAZ;
+            }, false);
+        }
+    </script>
+</body>
+
+</html>

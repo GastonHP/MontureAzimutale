@@ -12,12 +12,13 @@ public:
     // Fonction de conversion Quaternion -> Euler (Rad vers Deg)
     static EulerAngles getEulerFromQuaternion(float i, float j, float k, float r);
     bool isNull() const { return yaw * yaw + pitch * pitch + roll * roll < 0.001; };
-    String toString() const
-    {
-        return "Yaw: " + String(yaw, 2)  + "°, Roll: " + String(roll, 2) + "°, Pitch: " + String(pitch, 2)+ "°";
-    }
+    String toString() const { return "Y: " + String(yaw, 4) + "°, P: " + String(pitch, 4) + "°, R: " + String(roll, 4) + "°"; }
     EulerAngles copie() const { return EulerAngles(yaw, pitch, roll); }
-    float yaw;   // Azimut 
-    float pitch; // Roulis 
-    float roll;  // Inclinaison 
+    EulerAngles operator-(const EulerAngles &other) const { return EulerAngles(yaw - other.yaw, pitch - other.pitch, roll - other.roll); }
+    EulerAngles operator+(const EulerAngles &other) const { return EulerAngles(yaw + other.yaw, pitch + other.pitch, roll + other.roll); }
+    EulerAngles operator*(float factor) const { return EulerAngles(yaw * factor, pitch * factor, roll * factor); }
+    EulerAngles operator/(float factor) const { return EulerAngles(yaw / factor, pitch / factor, roll / factor); }
+    float yaw;   // Azimut
+    float pitch; // Inclinaison
+    float roll;  // Roulis
 };

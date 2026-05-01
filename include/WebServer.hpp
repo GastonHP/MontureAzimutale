@@ -13,6 +13,7 @@ public:
     static void stop();
 
 private:
+    static String getHtml();
     static AsyncWebServer server;
     static GPSManager *gpsManager;
 };
