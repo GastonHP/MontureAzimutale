@@ -1,0 +1,48 @@
+Le positionnement du **BNO085** est l'étape la plus cruciale pour la précision de votre télescope. Comme ce module utilise à la fois la gravité et le champ magnétique terrestre, son emplacement et son orientation influencent directement la justesse de votre Azimut et de votre Altitude.
+
+Voici les règles d'or pour une installation réussie :
+
+---
+
+## 1. L'emplacement physique (Lutte contre les perturbations)
+
+Le BNO085 contient un magnétomètre très sensible. Les métaux ferreux et les courants électriques créent des champs qui faussent l'Azimut.
+* **Éloignez-le des moteurs :** Vos moteurs **42BYG304** possèdent des aimants puissants. Placez le module à au moins **15-20 cm** des moteurs.
+* **Attention à la batterie :** Votre batterie **Bosch 18V** et les câbles où circule une forte intensité créent des champs magnétiques. Ne fixez pas le module directement sur le pack batterie.
+* **Support non ferreux :** Utilisez du plastique (impression 3D), du bois ou de l'aluminium. Évitez les vis en acier à proximité immédiate du capteur (préférez l'inox ou le nylon).
+
+---
+
+## 2. L'orientation des axes
+
+Le BNO085 possède un repère d'axes (X, Y, Z) imprimé sur le circuit imprimé. Pour simplifier vos calculs d'Euler :
+
+### Montage "À plat" (Recommandé)
+C'est la position la plus simple pour la programmation.
+* **Position :** Fixez le module horizontalement sur le tube ou la base.
+* **Axe Z (Vertical) :** Doit pointer vers le ciel ou le sol. Il gérera l'**Azimut**.
+* **Axe Y (Transversal) :** Doit être parallèle à l'axe de rotation de l'altitude. Il gérera le **Pitch (Altitude)**.
+* **Axe X (Longitudinal) :** Doit pointer vers l'avant du tube du télescope.
+
+
+
+---
+
+## 3. Alignement et Calibration
+
+Une fois fixé, le module doit être parfaitement aligné avec l'optique du télescope.
+* **Parallélisme :** Si le module est incliné de 2° par rapport au tube, vous aurez une erreur constante de 2° sur vos visées.
+* **Calibration "In-Situ" :** Le BNO085 possède des algorithmes d'auto-calibration. Une fois le système allumé, effectuez quelques mouvements lents sur les deux axes (Azimut et Altitude) pour que le capteur apprenne l'environnement magnétique de votre monture.
+
+---
+
+## 4. Astuce logicielle : Le "Tare"
+
+Si vous ne pouvez pas fixer le module parfaitement droit, la bibliothèque du BNO085 permet d'effectuer une opération de **Tare** (mise à zéro).
+1.  Pointez manuellement un objet connu (ou mettez le tube parfaitement à l'horizontale face au Nord).
+2.  Envoyez la commande de "Tare" au capteur.
+3.  Le BNO085 enregistre cette position comme sa nouvelle référence interne.
+
+> **Note sur votre montage :** Avec votre capacité de **1000µF**, le module est bien protégé contre les bruits de ligne, mais fixez-le bien rigidement. S'il vibre ou s'il bouge de quelques millimètres pendant que les moteurs tournent, vos calculs d'angles deviendront instables.
+
+**Comment prévoyez-vous de fixer le module sur votre structure (collé, vissé, ou dans un boîtier imprimé) ?**

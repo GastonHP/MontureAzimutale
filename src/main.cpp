@@ -70,6 +70,8 @@ int count = 10;
 
 void loop()
 {
+  if(!Telescope::loopActif)
+    return;
   generic_loop();
   if (OTA::started())
   {

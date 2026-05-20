@@ -7,14 +7,16 @@
 			"path": "../lib"
 		},
 		{
-			"name": "Aquarium",
-			"path": "../Aquarium"
-		},
-		{
 			"path": "D:/tmp/pio/MontureAzimutale"
 		},
 		{
-			"path": "../test drv8825"
+			"path": "test bno085"
+		},
+		{
+			"path": "test drv8825"
+		},
+		{
+			"path": "D:/tmp/pio/test bno85"
 		}
 	],
 	"settings": {

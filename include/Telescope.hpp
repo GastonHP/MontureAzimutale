@@ -12,6 +12,7 @@
 class Telescope
 {
 public:
+    static bool loopActif;
     static void setup(Adafruit_ST7789 *tftptr);
     static void loop();
     static void setTarget(EulerAngles target, float tolerance, float maxSpeed);
@@ -26,12 +27,15 @@ public:
     static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
     static EulerAngles getCurrentAngles(bool forceUpdate = false);
     static void stop();
+    static void calibrateMovement();
+    static void log(String s);
 
-    static float accuracy;
-    static uint8_t precision;
-
-    static EulerAngles deltaAZ;
-    static EulerAngles deltaALT;
+    // OK
+    static EulerAngles getDeltaAZ() { return deltaAZ; }
+    static EulerAngles getDeltaALT() { return deltaALT; }
+    static float getAccuracy() { return accuracy; }
+    static uint8_t getPrecision() { return precision; }
+    static String getJson();
 
 private:
     static void display_angles(EulerAngles angles);
@@ -48,10 +52,20 @@ private:
     static float maxSpeed;
 
     static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
-
+    static sh2_SensorValue_t sensorValue;
     static Adafruit_ST7789 *tftptr;
 
     static bool setupOK;
     static bool automatique;
     static GPSManager *gpsManager;
+
+    // OK
+    static EulerAngles deltaAZ;
+    static EulerAngles deltaALT;
+
+    static float accuracy;
+    static uint8_t precision;
+
+    static const int maxLogLines = 20;
+    static String logBuffer[maxLogLines];
 };

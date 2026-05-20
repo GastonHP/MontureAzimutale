@@ -5,6 +5,7 @@
 
 AsyncWebServer WebServer::server(80);
 GPSManager *WebServer::gpsManager = nullptr;
+bool WebServer::activated = false;
 
 String menuFile = "menu.html";
 String htmlMenu = "";
@@ -45,8 +46,8 @@ void WebServer::setup(GPSManager *manager)
             String dir = request->getParam("dir")->value();
             Serial.println("Commande reçue: " + dir);
             // Ici, vous pouvez appeler les fonctions de contrôle du télescope en fonction de 'dir'
-            if (dir == "left")  Telescope::steps(-100,0);   // 100 pas en Azimut
-            if (dir == "right") Telescope::steps(100,0);
+            if (dir == "left")  Telescope::steps(100,0);   // 100 pas en Azimut
+            if (dir == "right") Telescope::steps(-100,0);
             if (dir == "up")    Telescope::steps(0,100);    // 100 pas en Altitude
             if (dir == "down")  Telescope::steps(0,-100);
 
@@ -59,6 +60,7 @@ void WebServer::setup(GPSManager *manager)
 
     server.addHandler(&events);
     server.begin();
+    activated = true;
 }
 
 static bool stopped = false;
@@ -75,34 +77,15 @@ void WebServer::stop()
 
 void WebServer::loop()
 {
-    if (stopped)
+    if (stopped || !activated)
         return;
 
     static unsigned long lastUpdate = 0;
-    if (millis() - lastUpdate > 500)
+    if (millis() - lastUpdate > 1000)
     {
-        // Calcul batterie (pont 300k/51k)
-        float batt = Batterie::lireTension(); // * (300.0 + 51.0) / 51.0;
-
-        // Récupération angles BNO (à adapter selon votre lib)
-        EulerAngles angles = Telescope::getCurrentAngles();
-        float accuracy = Telescope::getAccuracy(); // Précision du capteur
-
-        // Création du message JSON pour le Web
-        String json = "{";
-        json += "\"yaw\":\"" + String(angles.yaw, 1) + "\",";
-        json += "\"pitch\":\"" + String(angles.pitch, 1) + "\",";
-        json += "\"roll\":\"" + String(angles.roll, 1) + "\",";
-        json += "\"accuracy\":\"" + String(accuracy, 1) + "\",";
-        json += "\"precision\":\"" + String(Telescope::getPrecision()) + "\",";
-        json += "\"batt\":\"" + String(batt, 1) + "\",";
-        json += "\"sats\":\"" + String(gpsManager->satellites()) + "\",";
-        json += "\"deltaALT\":\"" + String(Telescope::getDeltaALT().toString()) + "\",";
-        json += "\"deltaAZ\":\"" + String(Telescope::getDeltaAZ().toString()) + "\"";
-        json += "}";
 
         // Envoi aux clients Web connectés
-        events.send(json.c_str(), "data_update", millis());
+        events.send(Telescope::getJson().c_str(), "data_update", millis());
 
         lastUpdate = millis();
     }
