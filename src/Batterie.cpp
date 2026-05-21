@@ -1,6 +1,7 @@
 #include "Batterie.hpp"
 #include <Arduino.h>
 #include "Log.hpp"
+#include "monEcran.hpp"
 
 #define PIN_BATTERIE 1              // GPIO 1
 const float facteurDivision = 11.0; // (315+51)/51
@@ -24,17 +25,4 @@ float Batterie::lireTension()
 
   // Calibration fine (ajustez ce petit décalage après mesure au multimètre)
   return lastV + 0.2;
-}
-
-void Batterie::loop(Adafruit_ST7789 *tftptr)
-{
-  static unsigned long lastDisplay = 0;
-  if (millis() - lastDisplay < 10000)
-    return;
-  lastDisplay = millis();
-  // Rien à faire pour l'instant, mais on peut ajouter des fonctionnalités plus tard
-  tftptr->setCursor(120, 48);
-  tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-  tftptr->printf("BAT:%.2fV", lireTension());
-  Log::addLog("Batterie voltage: " + String(lireTension(), 2) + "V");
 }

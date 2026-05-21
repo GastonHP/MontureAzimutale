@@ -4,8 +4,6 @@
 #include "astronomy.h"
 #include <Adafruit_BNO08x.h>
 #include "EulerAngles.hpp"
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include "MotorControl.hpp"
 #include "GPSManager.hpp"
 
@@ -13,7 +11,7 @@ class Telescope
 {
 public:
     static bool loopActif;
-    static void setup(Adafruit_ST7789 *tftptr);
+    static void setup();
     static void loop();
     static void setTarget(EulerAngles target, float tolerance, float maxSpeed);
     static void setAutomatique(bool autoMode);
@@ -29,12 +27,14 @@ public:
     static void stop();
     static void calibrateMovement();
     static void log(String s);
+    static float calculerAzimutVrai(float azimutMagnetique);
+    static uint8_t getPrecision() { return precision; }
 
     // OK
     static EulerAngles getDeltaAZ() { return deltaAZ; }
     static EulerAngles getDeltaALT() { return deltaALT; }
     static float getAccuracy() { return accuracy; }
-    static uint8_t getPrecision() { return precision; }
+    
     static String getJson();
 
 private:
@@ -42,7 +42,7 @@ private:
     static void dessinerBoussole(EulerAngles angles, bool vraiNord = true);
     static void dessinerNiveauVif(EulerAngles angles);
     static void setReports();
-    static float calculerAzimutVrai(float azimutMagnetique);
+    
     static MotorControl motorAZ;
     static MotorControl motorALT;
 
@@ -53,7 +53,6 @@ private:
 
     static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
     static sh2_SensorValue_t sensorValue;
-    static Adafruit_ST7789 *tftptr;
 
     static bool setupOK;
     static bool automatique;

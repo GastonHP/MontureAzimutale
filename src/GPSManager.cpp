@@ -1,4 +1,5 @@
 #include "GPSManager.hpp"
+#include "monEcran.hpp"
 
 // Séquence hexadécimale pour passer à 0.5Hz (UBX-CFG-RATE)
 const byte GPS_HZ[] = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xD0, 0x07, 0x01, 0x00, 0x01, 0x00, 0x57, 0x92};
@@ -13,9 +14,8 @@ const char DISABLE_VTG[] = "$PUBX,40,VTG,0,0,0,0,0,0*5E";
 
 GPSManager::GPSManager(int rxPin, int txPin, int baud) : _rx(rxPin), _tx(txPin), _baud(baud), gpsSerial(2) {}
 
-void GPSManager::setup(Adafruit_ST7789 *monEcranptr)
+void GPSManager::setup()
 {
-    Ecranptr = monEcranptr;
     // Initialisation du port série pour le GPS
     delay(1000);
     gpsSerial.setRxBufferSize(2048);
@@ -74,21 +74,6 @@ void GPSManager::loop()
         if (hasFix())
         {
             nFixes++;
-            if (Ecranptr != nullptr)
-            {
-                Ecranptr->setCursor(0, 0);
-                Ecranptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-                Ecranptr->printf("UT: %s Sat:%d\n\r", timeString().c_str(), satellites());
-                Ecranptr->printf("%05.2fN   %05.2fE\n\r", latitude(), longitude());
-                // Ecranptr->printf("Alt:%.2fm Sat:%d\n\r", altitude(), satellites());
-                // Ecranptr->printf("Vitesse: %.2f km/h\n\r", speedKmh());
-            }
-        }
-        else
-        {
-            // Serial.println("Recherche satellites...");
-            // monEcranptr->setCursor(0, 0);
-            // monEcranptr->printf("Recherche satellites...\n\r");
         }
         break;
     }

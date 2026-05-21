@@ -1,6 +1,8 @@
 #include "Telescope.hpp"
 #include "Batterie.hpp"
 #include "WebServer.hpp"
+#include "monEcran.hpp"
+
 #include <Wire.h>
 
 #define sda_pin 8
@@ -33,7 +35,7 @@ EulerAngles Telescope::deltaAZ = EulerAngles(0.0f, 0.0f, 0.0f);
 EulerAngles Telescope::deltaALT = EulerAngles(0.0f, 0.0f, 0.0f);
 Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(-1); // Utilisation du même reset pin que dans bno08x.cpp
 EulerAngles Telescope::anglesAAtteindre = EulerAngles(0.0f, 0.0f, 0.0f);
-Adafruit_ST7789 *Telescope::tftptr = nullptr;
+
 float Telescope::tolerance = 0.5; // Tolérance par défaut en degrés
 float Telescope::maxSpeed = 1.0;  // Vitesse maximale par défaut
 bool Telescope::setupOK = false;
@@ -57,29 +59,20 @@ void Telescope::setReports()
     }
 }
 
-void Telescope::setup(Adafruit_ST7789 *tftptr)
+void Telescope::setup()
 {
-    Telescope::tftptr = tftptr;
     setAutomatique(false);                // Par défaut, on démarre en mode manuel
     Wire.begin(sda_pin, scl_pin, 400000); // Initialisation du bus I2C à 400 kHz
     if (!bno08x.begin_I2C(0x4B, &Wire))
     {
-        tftptr->setTextColor(ST77XX_RED);
-        tftptr->setTextSize(2);
-        tftptr->setCursor(10, 40);
-        tftptr->print("Erreur BNO!");
+        MonEcran::logError("Erreur BNO!");
         log("Erreur de connexion au BNO08x");
         return;
     }
     setupOK = true;
     Serial.println("BNO08x connected!");
-    tftptr->fillScreen(ST77XX_BLACK);
-    tftptr->setTextColor(ST77XX_GREEN);
-    tftptr->setTextSize(2);
-    tftptr->setCursor(5, 5);
-    tftptr->println("Systeme Pret");
+    MonEcran::log("Systeme Pret");
     log("BNO08x connecté avec succès");
-    tftptr->setTextSize(1);
     for (int n = 0; n < bno08x.prodIds.numEntries; n++)
     {
         String s = "Part " + String(bno08x.prodIds.entry[n].swPartNumber, HEX) +
@@ -87,7 +80,7 @@ void Telescope::setup(Adafruit_ST7789 *tftptr)
                    "." + String(bno08x.prodIds.entry[n].swVersionPatch, HEX) +
                    " Build " + String(bno08x.prodIds.entry[n].swBuildNumber, HEX);
         Serial.println(s);
-        tftptr->println(s);
+        MonEcran::log(s);
     }
     setReports();
     motorAZ.begin();
@@ -140,109 +133,6 @@ void Telescope::calibrateMovement()
     loopActif = true;
 }
 
-void Telescope::display_angles(EulerAngles angles)
-{
-    static unsigned long lastDisplay = 0;
-    if (millis() - lastDisplay < 3000)
-        return;
-    lastDisplay = millis();
-    tftptr->setCursor(0, 260);
-    tftptr->setTextColor(ST77XX_WHITE, ST77XX_BLACK);
-    tftptr->printf("Yaw:   %7.2f\n\r", angles.yaw);
-    tftptr->printf("Pitch: %7.2f\n\r", angles.pitch);
-    tftptr->printf("Roll:  %7.2f\n\r", angles.roll);
-}
-
-void Telescope::dessinerNiveauVif(EulerAngles angles)
-{
-    static unsigned long lastDisplay = 0;
-    static int oldX = 80;
-    static int oldY = 160;
-    if (millis() - lastDisplay < 3000)
-        return;
-    lastDisplay = millis();
-    int centreX = 80;
-    int centreY = 160;
-    int sensibilite = 8; // Ajustez pour rendre la bulle plus ou moins vive
-
-    // 1. Calcul de la nouvelle position (Inversion du signe selon l'orientation du capteur)
-    int newX = centreX + (int)(angles.roll * sensibilite);
-    int newY = centreY + (int)(angles.pitch * sensibilite);
-
-    // 2. Contrainte pour que la bulle ne sorte pas trop de la cible
-    newX = constrain(newX, centreX - 60, centreX + 60);
-    newY = constrain(newY, centreY - 60, centreY + 60);
-
-    // 3. Dessin de la cible fixe (une seule fois ou à chaque tour)
-    tftptr->drawCircle(centreX, centreY, 50, ST77XX_WHITE);
-    tftptr->drawCircle(centreX, centreY, 5, ST77XX_WHITE); // Point central
-
-    // 4. Effacer l'ancienne bulle (en la dessinant en noir)
-    if (newX != oldX || newY != oldY)
-    {
-        tftptr->fillCircle(oldX, oldY, 10, ST77XX_BLACK);
-    }
-
-    // 5. Dessiner la nouvelle bulle (Vert si proche du centre, rouge sinon)
-    uint16_t couleurBulle = ST77XX_RED;
-    if (abs(angles.pitch) < 0.2 && abs(angles.roll) < 0.2)
-        couleurBulle = ST77XX_GREEN;
-
-    tftptr->fillCircle(newX, newY, 10, couleurBulle);
-
-    // Sauvegarde pour le prochain tour
-    oldX = newX;
-    oldY = newY;
-}
-
-void Telescope::dessinerBoussole(EulerAngles angles, bool vraiNord /*= true*/)
-{
-    static unsigned long lastDisplay = 0;
-    if (millis() - lastDisplay < 3000)
-        return;
-    lastDisplay = millis();
-    float azimut = angles.yaw; // Azimut magnétique
-
-    uint16_t couleurAiguille = ST77XX_BLUE;
-    if (vraiNord)
-    {
-        azimut = calculerAzimutVrai(azimut);
-        couleurAiguille = ST77XX_GREEN;
-    }
-
-    int cX = 80;  // Centre X
-    int cY = 160; // Centre Y
-    int r = 80;   // Rayon du cadran
-
-    // 1. Dessiner le cadran fixe (une seule fois idéalement)
-    tftptr->drawCircle(cX, cY, r, ST77XX_WHITE);
-    tftptr->setTextColor(ST77XX_RED);
-    tftptr->setCursor(cX - 5, cY - r - 15);
-    tftptr->print("N");
-    tftptr->setTextColor(ST77XX_WHITE);
-    tftptr->setCursor(cX - 5, cY + r + 5);
-    tftptr->print("S");
-    // 2. Calculer l'angle de l'aiguille (en radians)
-    float rad = azimut * PI / 180.0;
-
-    // 3. Effacer l'ancienne aiguille (méthode simple : redessiner le fond)
-    static float lastRad = 0;
-    tftptr->drawLine(cX, cY, cX + sin(lastRad) * r, cY - cos(lastRad) * r, ST77XX_BLACK);
-
-    // 4. Dessiner la nouvelle aiguille
-    // Nord en Rouge
-    tftptr->drawLine(cX, cY, cX + sin(rad) * r, cY - cos(rad) * r, couleurAiguille);
-    // Sud en Blanc (optionnel)
-    tftptr->drawLine(cX, cY, cX - sin(rad) * (r / 2), cY + cos(rad) * (r / 2), ST77XX_WHITE);
-
-    lastRad = rad;
-
-    // 5. Affichage numérique au centre
-    tftptr->fillRect(cX - 20, cY + 20, 40, 15, ST77XX_BLACK); // Effacement partiel
-    tftptr->setCursor(cX - 15, cY + 20);
-    tftptr->printf("%03d", (int)azimut);
-}
-
 float Telescope::calculerAzimutVrai(float azimutMagnetique)
 {
     // 1. Récupérer la longitude depuis le NEO-6M
@@ -279,26 +169,6 @@ void Telescope::loop()
     if (!setupOK || !loopActif)
         return;
     Telescope::getCurrentAngles();
-
-    // Affichage graphique simple de la précision (vert = 3, cyan = 2, rouge = 0 ou 1)
-    switch (precision)
-    {
-    case 3:
-        tftptr->setTextColor(ST77XX_GREEN, ST77XX_BLACK);
-        break;
-    case 2:
-        tftptr->setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-        break;
-    default:
-        tftptr->setTextColor(ST77XX_RED, ST77XX_BLACK);
-    }
-    tftptr->setCursor(0, 32);
-    tftptr->printf("PREC:%d", precision);
-
-    display_angles(anglesActuels);
-    dessinerNiveauVif(anglesActuels);
-    dessinerBoussole(anglesActuels, true); // true ==> azimuth vrai
-    // commanderMouvement(anglesAAtteindre.yaw, anglesAAtteindre.pitch);
 }
 
 void Telescope::setTarget(EulerAngles target, float tolerance, float maxSpeed)

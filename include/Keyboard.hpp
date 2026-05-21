@@ -1,5 +1,4 @@
-// #ifndef KEYBOARD_HPP
-// #define KEYBOARD_HPP
+// #pragma once
 
 // #include "Arduino.h"
 // #include "NimBLEDevice.h"
@@ -17,4 +16,3 @@
 //     static void loop();
 // };
 
-// #endif // KEYBOARD_HPP

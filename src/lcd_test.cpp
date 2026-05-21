@@ -29,13 +29,14 @@
   MIT license, all text above must be included in any redistribution
  **************************************************************************/
 
+#ifdef TEST_LCD
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
 static Adafruit_ST7789 *tft;
 
-    float p = 3.1415926;
+float p = 3.1415926;
 
 void testlines(uint16_t color)
 {
@@ -305,3 +306,4 @@ void lcd_test_setup(Adafruit_ST7789 *tftptr)
     Serial.println("done");
     delay(1000);
 }
+#endif

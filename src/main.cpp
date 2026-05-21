@@ -8,10 +8,13 @@
 #include "EulerAngles.hpp"
 #include "Telescope.hpp"
 #include "WebServer.hpp"
+#include "monEcran.hpp"
 
 GPSManager gpsManager(18, 17, 9600); // RX=18, TX=17
 
+#ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
+#endif
 
 void setup()
 {
@@ -20,21 +23,21 @@ void setup()
   RGB_LED_setup();
   Log::addLog("RGB_LED_setup done.");
   // setup de l'écran
-  monEcran_setup();
+  MonEcran::setup();
   RGB_LED_SET(0, 0, 32, 15); // éteint la LED au démarrage
   delay(500);
-  Serial.println(F("monEcran_setup done."));
+  Serial.println(F("MonEcran::setup done."));
 
   // setup de la config wifi, mqtt, ftp, OTA, etc.
-  Config::setup(monEcran_display);
+  Config::setup(MonEcran::log);
   Log::addLog("Config::setup done.");
   RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
   Serial.println(F("Config::setup done."));
-  generic_setup(monEcran_display);
+  generic_setup(MonEcran::log );
   Log::addLog("generic_setup done.");
 
   Serial.println(F("Setup after config done."));
-  monEcran_display("Setup done.");
+  MonEcran::log("Setup done.");
 #ifdef SD_ACTIF
   SDisk::setup();
   Serial.println(F("Setup after SDisk done."));
@@ -46,16 +49,16 @@ void setup()
     generic_loop();
   }
   // setup du GPS
-  gpsManager.setup(&monEcran);
-  monEcran_display("GPS setup done.");
+  gpsManager.setup();
+  MonEcran::log("GPS setup done.");
   Serial.println(F("GPS_setup done."));
   Log::addLog("GPS_setup done.");
   Serial.println(F("Setup after GPS done."));
   // setup du télescope (BNO08x, moteurs, écran)
-  Telescope::setup(&monEcran);
-  monEcran_display("Telescope setup done.");
+  Telescope::setup();
+  MonEcran::log("Telescope setup done.");
   Telescope::setGPSManager(&gpsManager);
-  monEcran_display("Telescope GPS manager set.");
+  MonEcran::log("Telescope GPS manager set.");
   Serial.println(F("Telescope::setup done."));
   Log::addLog("Telescope::setup done.");
   // Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
@@ -70,7 +73,7 @@ int count = 10;
 
 void loop()
 {
-  if(!Telescope::loopActif)
+  if (!Telescope::loopActif)
     return;
   generic_loop();
   if (OTA::started())
@@ -84,17 +87,5 @@ void loop()
   WebServer::loop();
   gpsManager.loop();
   Telescope::loop();
-  Batterie::loop(&monEcran);
-  // if (count > 0 && millis() > nextTime)
-  // {
-  //   nextTime = millis() + 2000;
-  //   count--;
-  //   Telescope::steps(-100, 100); // Exemple : déplacer les moteurs de 100 pas
-  // }
-  // if (count == 0 && millis() > nextTime)
-  // {
-  //   nextTime = millis() + 2000;
-  //   count--;
-  //   Telescope::steps(1000, -1000); // Exemple : déplacer les moteurs de 100 pas
-  // }
+  MonEcran::loop(&gpsManager);
 }

@@ -1,5 +1,4 @@
-#ifndef WEBSERVER_HPP
-#define WEBSERVER_HPP
+#pragma once
 
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
@@ -19,5 +18,3 @@ private:
     static GPSManager *gpsManager;
     static bool activated;
 };
-
-#endif // WEBSERVER_HPP
