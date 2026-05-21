@@ -1,7 +1,9 @@
 #include "Telescope.hpp"
+
 #include "Batterie.hpp"
 #include "WebServer.hpp"
 #include "monEcran.hpp"
+#include "astronomy.h"
 
 #include <Wire.h>
 

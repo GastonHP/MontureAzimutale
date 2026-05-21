@@ -1,4 +1,7 @@
 #include "Parametres.hpp"
+#include "Log.hpp"
+#include "GHFS.hpp"
+
 Parametres::GPSParam Parametres::gpsParam;
 
 bool Parametres::read()

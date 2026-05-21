@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Arduino.h"
-#include "astronomy.h"
+//#include "astronomy.h"
 #include <Adafruit_BNO08x.h>
 #include "EulerAngles.hpp"
 #include "MotorControl.hpp"
