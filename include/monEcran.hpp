@@ -16,6 +16,8 @@ public:
   private:
   static void afficherBoussole(EulerAngles angles);
   static void afficherNiveauBulle(EulerAngles angles);
-  static void afficherPrecision(uint8_t precision);
-  static void afficherAngles(EulerAngles angles);
+   static void afficherAngles(EulerAngles angles,uint8_t precision);
+  static void afficherBatterie();
+  static void afficherGPS(GPSManager *gpsManager);
+  static void afficherQuadrilage(int step);
 };
