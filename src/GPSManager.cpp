@@ -1,18 +1,26 @@
 #include "GPSManager.hpp"
 #include "monEcran.hpp"
+#include "HardwareSerial.h"
+#include <TinyGPSPlus.h>
 
+#define GPS_RX_PIN 18
+#define GPS_TX_PIN 17
+#define GPS_BAUD_RATE 9600
 // Séquence hexadécimale pour passer à 0.5Hz (UBX-CFG-RATE)
-const byte GPS_HZ[] = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xD0, 0x07, 0x01, 0x00, 0x01, 0x00, 0x57, 0x92};
+static const byte GPS_HZ[] = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xD0, 0x07, 0x01, 0x00, 0x01, 0x00, 0x57, 0x92};
 // 1. Passer le GPS à 38400 bauds (Commande UBX-CFG-PRT)
-byte packet_38400baud[] = {
+static const byte packet_38400baud[] = {
     0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08, 0x00, 0x00,
     0x00, 0x96, 0x00, 0x00, 0x07, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x93, 0x90};
 // Désactiver les messages inutiles (GSV = Satellites in View, très bavard)
-const char DISABLE_GSV[] = "$PUBX,40,GSV,0,0,0,0,0,0*59";
-const char DISABLE_GSA[] = "$PUBX,40,GSA,0,0,0,0,0,0*4E";
-const char DISABLE_VTG[] = "$PUBX,40,VTG,0,0,0,0,0,0*5E";
+static const char DISABLE_GSV[] = "$PUBX,40,GSV,0,0,0,0,0,0*59";
+static const char DISABLE_GSA[] = "$PUBX,40,GSA,0,0,0,0,0,0*4E";
+static const char DISABLE_VTG[] = "$PUBX,40,VTG,0,0,0,0,0,0*5E";
 
-GPSManager::GPSManager(int rxPin, int txPin, int baud) : _rx(rxPin), _tx(txPin), _baud(baud), gpsSerial(2) {}
+static HardwareSerial gpsSerial(2);
+static TinyGPSPlus gps;
+static int nFixes = 0;
+static GPSManager::portStatus portStatusValue = GPSManager::Closed;
 
 void GPSManager::setup()
 {
@@ -20,7 +28,7 @@ void GPSManager::setup()
     delay(1000);
     gpsSerial.setRxBufferSize(2048);
     //
-    gpsSerial.begin(_baud, SERIAL_8N1, _rx, _tx);
+    gpsSerial.begin(GPS_BAUD_RATE, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
     delay(1000);
     // gpsSerial.write(packet_38400baud, sizeof(packet_38400baud));
     // delay(1000);
@@ -44,10 +52,10 @@ void GPSManager::stop()
     portStatusValue = Closed;
 }
 
-unsigned long nextFix = 0;
-
 void GPSManager::loop()
 {
+    static unsigned long nextFix = 0;
+    static unsigned long nextLoop;
     if (millis() > nextFix)
     {
         nextFix = millis() + 60000;
@@ -63,7 +71,7 @@ void GPSManager::loop()
     {
     case Closed:
         nextLoop = millis() + 1000;
-        gpsSerial.begin(_baud, SERIAL_8N1, _rx, _tx);
+        gpsSerial.begin(GPS_BAUD_RATE, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
         portStatusValue = Open;
         break;
     case Open:
@@ -72,9 +80,7 @@ void GPSManager::loop()
         gpsSerial.end();
         portStatusValue = Closed;
         if (hasFix())
-        {
             nFixes++;
-        }
         break;
     }
 }
@@ -115,11 +121,11 @@ void GPSManager::update()
 
 // delay(10); // to allow serial buffer to fill
 #endif
-                //Serial.print((char)r);
+                // Serial.print((char)r);
                 delay(2); // to allow serial buffer to fill
             }
         }
-        //Serial.print("<- " + String(n, DEC) + " ->");
+        // Serial.print("<- " + String(n, DEC) + " ->");
     }
 }
 

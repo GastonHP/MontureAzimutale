@@ -37,6 +37,7 @@
 #define GPSH (LH * 4 + 2)
 
 static Adafruit_ST7789 monEcran = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+bool MonEcran::activated = true;
 
 void MonEcran::setup()
 {
@@ -150,7 +151,7 @@ void MonEcran::afficherNiveauBulle(EulerAngles angles)
     oldY = newY;
 }
 
-void MonEcran::afficherAngles(EulerAngles angles, uint8_t precision)
+void MonEcran::afficherAngles(EulerAngles angles)
 {
     // Affichage numérique des angles
     // rectangle de 170x50 pixels en bas à gauche
@@ -166,7 +167,7 @@ void MonEcran::afficherAngles(EulerAngles angles, uint8_t precision)
     monEcran.printf("Roll: %7.2f\n\r", angles.roll);
     monEcran.setCursor(ANGX + 2, ANGY + 3 * LH);
     uint16_t couleurPrecision = ST77XX_RED;
-    switch (precision)
+    switch (angles.precision)
     {
     case 3:
         couleurPrecision = ST77XX_GREEN;
@@ -178,7 +179,7 @@ void MonEcran::afficherAngles(EulerAngles angles, uint8_t precision)
         couleurPrecision = ST77XX_RED;
     }
     monEcran.setTextColor(couleurPrecision, ST77XX_BLACK);
-    monEcran.printf("PREC:%7d", precision);
+    monEcran.printf("PREC:%7d", angles.precision);
 }
 
 void MonEcran::afficherBatterie()
@@ -192,19 +193,19 @@ void MonEcran::afficherBatterie()
     monEcran.printf("BAT: %7.2fV", Batterie::lireTension());
 }
 
-void MonEcran::afficherGPS(GPSManager *gpsManager)
+void MonEcran::afficherGPS()
 {
     // Affichage des données GPS
     monEcran.drawRect(GPSX, GPSY, GPSW, GPSH, ST77XX_GREEN);
     monEcran.setCursor(GPSX + 2, GPSY + 2);
     monEcran.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-    monEcran.printf("UT: %s\n\r", gpsManager->timeString().c_str());
+    monEcran.printf("UT: %s\n\r",GPSManager::timeString().c_str());
     monEcran.setCursor(GPSX + 2, GPSY + LH);
-    monEcran.printf("Sat:%7d\n\r", gpsManager->satellites());
+    monEcran.printf("Sat:%7d\n\r", GPSManager::satellites());
     monEcran.setCursor(GPSX + 2, GPSY + 2 * LH);
-    monEcran.printf("Lat:%7.2fN\n\r", gpsManager->latitude());
+    monEcran.printf("Lat:%7.2fN\n\r", GPSManager::latitude());
     monEcran.setCursor(GPSX + 2, GPSY + 3 * LH);
-    monEcran.printf("Lon:%7.2fE\n\r", gpsManager->longitude());
+    monEcran.printf("Lon:%7.2fE\n\r", GPSManager::longitude());
 }
 
 void MonEcran::afficherQuadrilage(int step)
@@ -220,8 +221,10 @@ void MonEcran::afficherQuadrilage(int step)
         monEcran.drawLine(0, y, monEcran.width(), y, ST77XX_CYAN);
     }
 }
-void MonEcran::loop(GPSManager *gpsManager)
+void MonEcran::loop()
 {
+    if(!activated)
+        return;
     static unsigned long lastDisplay = 0;
     static bool firstLoop = true;
     if (millis() - lastDisplay < 3000)
@@ -233,12 +236,13 @@ void MonEcran::loop(GPSManager *gpsManager)
         firstLoop = false;
     }
     // affichage angles
-    EulerAngles angles = Telescope::getCurrentAngles();
-    afficherAngles(angles, Telescope::getPrecision());
+    Telescope::readAnglesFromSensor();
+    EulerAngles angles = Telescope::ARVR_STABILIZED_RV_anglesActuels;
+    afficherAngles(angles);
     // affichage Batterie
     afficherBatterie();
     // affichage GPS
-    afficherGPS(gpsManager);
+    afficherGPS();
     // affichage Niveau à bulle
      afficherNiveauBulle(angles);
     // affichage boussole

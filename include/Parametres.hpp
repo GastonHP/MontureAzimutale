@@ -1,9 +1,6 @@
 #pragma once
 #include <TinyGPSPlus.h>
-//#include <HardwareSerial.h>
-//#include "Log.hpp"
 #include "commun.hpp"
-//#include "GHFS.hpp"
 
 class Parametres
 {

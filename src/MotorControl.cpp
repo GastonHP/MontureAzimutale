@@ -39,7 +39,7 @@ void MotorControl::begin()
         stepper->setAutoEnable(true); // Active le driver seulement lors du mouvement
         // stepper->enableOutputs(); // Active le driver (si autoEnable est false)
 
-        stepper->setSpeedInHz(400);     // 3200);    // Vitesse max (pas/sec)
+        stepper->setSpeedInHz(200);     // 400);     // 3200);    // Vitesse max (pas/sec)
         stepper->setAcceleration(1000); // Rampe d'accélération
         setMicrostepping(_microsteps);  // Configurer le microstepping
     }

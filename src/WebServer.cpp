@@ -4,7 +4,6 @@
 #include "GHFS.hpp"
 
 AsyncWebServer WebServer::server(80);
-GPSManager *WebServer::gpsManager = nullptr;
 bool WebServer::activated = false;
 
 String menuFile = "menu.html";
@@ -30,14 +29,17 @@ String WebServer::getHtml()
     return htmlMenu;
 }
 
-void WebServer::setup(GPSManager *manager)
+void WebServer::setup()
 {
-    gpsManager = manager;
-
     // Route pour la page d'accueil
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
               { request->send_P(200, "text/html", getHtml().c_str()); });
-
+    // Route pour reboot
+    server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
+              { 
+        request->send(200, "text/plain", "Rebooting...");
+        delay(100); // Assurez-vous que la réponse est envoyée avant de redémarrer
+        ESP.restart(); });
     // Route pour les commandes de mouvement
     server.on("/control", HTTP_GET, [](AsyncWebServerRequest *request)
               {
@@ -65,14 +67,27 @@ void WebServer::setup(GPSManager *manager)
 
 static bool stopped = false;
 
-void WebServer::stop()
+// void WebServer::stop()
+// {
+//     if (!stopped)
+//     {
+//         Serial.println("Arrêt du serveur Web...");
+//         stopped = true;
+//         server.end();
+//     }
+// }
+
+void WebServer::setActivated(bool state)
 {
-    if (!stopped)
+    if (state == true && activated == false)
     {
-        Serial.println("Arrêt du serveur Web...");
-        stopped = true;
+        server.begin();
+    }
+    else if (state == false && activated == true)
+    {
         server.end();
     }
+    activated = state;
 }
 
 void WebServer::loop()
@@ -83,10 +98,8 @@ void WebServer::loop()
     static unsigned long lastUpdate = 0;
     if (millis() - lastUpdate > 1000)
     {
-
         // Envoi aux clients Web connectés
         events.send(Telescope::getJson().c_str(), "data_update", millis());
-
         lastUpdate = millis();
     }
 }

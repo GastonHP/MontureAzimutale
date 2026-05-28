@@ -4,13 +4,12 @@
 #include "GPSManager.hpp"
 #include "Batterie.hpp"
 #include "OTA.hpp"
+#include "log.hpp"
 
 #include "EulerAngles.hpp"
 #include "Telescope.hpp"
 #include "WebServer.hpp"
 #include "monEcran.hpp"
-
-GPSManager gpsManager(18, 17, 9600); // RX=18, TX=17
 
 #ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
@@ -33,7 +32,7 @@ void setup()
   Log::addLog("Config::setup done.");
   RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
   Serial.println(F("Config::setup done."));
-  generic_setup(MonEcran::log );
+  generic_setup(MonEcran::log);
   Log::addLog("generic_setup done.");
 
   Serial.println(F("Setup after config done."));
@@ -49,7 +48,7 @@ void setup()
     generic_loop();
   }
   // setup du GPS
-  gpsManager.setup();
+  GPSManager::setup(); // RX=18, TX=17
   MonEcran::log("GPS setup done.");
   Serial.println(F("GPS_setup done."));
   Log::addLog("GPS_setup done.");
@@ -57,15 +56,14 @@ void setup()
   // setup du télescope (BNO08x, moteurs, écran)
   Telescope::setup();
   MonEcran::log("Telescope setup done.");
-  Telescope::setGPSManager(&gpsManager);
+
   MonEcran::log("Telescope GPS manager set.");
   Serial.println(F("Telescope::setup done."));
   Log::addLog("Telescope::setup done.");
   // Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
-  EulerAngles angles = Telescope::getCurrentAngles();
-  angles.roll = 0.0; // Simuler une inclinaison pour tester le niveau à bulle
+  Telescope::readAnglesFromSensor();
   // Telescope::setTarget(angles, 0.5, 50); // Cible les angles actuels pour tester le mode automatique
-  WebServer::setup(&gpsManager);
+  WebServer::setup();
 }
 
 unsigned long nextTime = 0;
@@ -79,13 +77,13 @@ void loop()
   if (OTA::started())
   {
     Telescope::stop(); // Arrête les moteurs avant de faire quoi que ce soit d'autre
-    WebServer::stop();
-    gpsManager.stop();
+    WebServer::setActivated(false); // Désactive le serveur Web pour éviter les conflits pendant l'OTA
+    GPSManager::stop();
     return;
   }
 
   WebServer::loop();
-  gpsManager.loop();
+  GPSManager::loop();
   Telescope::loop();
-  MonEcran::loop(&gpsManager);
+  MonEcran::loop();
 }
