@@ -4,12 +4,13 @@
 
 class Calibration
 {
-    public:
-    EulerAngles deltaAZ();
-    EulerAngles deltaALT();
-    
+public:
+    EulerAngles deltaAZ() const;
+    EulerAngles deltaALT() const;
+    void reset() noexcept;
+
     EulerAngles origineAZ;
     EulerAngles origineALT;
-    EulerAngles finALT;
     EulerAngles finAZ;
+    EulerAngles finALT;
 };
