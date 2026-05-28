@@ -2,7 +2,7 @@
 #include "Telescope.hpp"
 #include "Batterie.hpp"
 #include "GHFS.hpp"
-
+//
 AsyncWebServer WebServer::server(80);
 bool WebServer::activated = false;
 
