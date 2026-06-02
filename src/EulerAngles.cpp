@@ -1,11 +1,19 @@
 
 #include "EulerAngles.hpp"
 
+static float normaliser180(float angle)
+{
+    while (angle < -180)
+        angle += 360;
+    while (angle >= 180)
+        angle -= 360;
+    return angle;
+}
 EulerAngles::EulerAngles(float roll, float pitch, float yaw)
 {
-    this->roll = roll;
-    this->pitch = pitch;
-    this->yaw = yaw;
+    this->roll = normaliser180(roll);
+    this->pitch = normaliser180(pitch);
+    this->yaw = normaliser180(yaw);
 }
 
 // Fonction de conversion Quaternion -> Euler (Rad vers Deg)
@@ -40,18 +48,9 @@ EulerAngles EulerAngles::getEulerFromQuaternion(float qi, float qj, float qk, fl
     // angles.pitch = asin(2.0f * (qr * qj - qk * qi)) * 57.2958;
     // angles.roll = atan2(2.0f * (qr * qi + qj * qk), 1 - 2 * (qi * qi + qj * qj)) * 57.2958;
 
-    while (angles.roll < 0)
-        angles.roll += 360; // Normaliser entre 0 et 360
-    while (angles.roll >= 360)
-        angles.roll -= 360;
-    while (angles.pitch < 0)
-        angles.pitch += 360; // Normaliser entre 0 et 360
-    while (angles.pitch >= 360)
-        angles.pitch -= 360;
-    while (angles.yaw < 0)
-        angles.yaw += 360; // Normaliser entre 0 et 360
-    while (angles.yaw >= 360)
-        angles.yaw -= 360;
+    angles.roll = normaliser180(angles.roll);
+    angles.pitch = normaliser180(angles.pitch);
+    angles.yaw = normaliser180(angles.yaw);
 
     return angles;
 }
@@ -63,7 +62,7 @@ EulerAngles convertQuaternionToEuler(float r, float i, float j, float k)
     // 1. ROLL (Axe X)
     float sinr_cosp = 2 * (r * i + j * k);
     float cosr_cosp = 1 - 2 * (i * i + j * j);
-    angles.roll = atan2(sinr_cosp, cosr_cosp) * RAD_TO_DEG;
+    angles.roll = normaliser180(atan2(sinr_cosp, cosr_cosp) * RAD_TO_DEG);
 
     // 2. PITCH (Axe Y - Votre Altitude)
     float sinp = 2 * (r * j - k * i);
@@ -75,11 +74,7 @@ EulerAngles convertQuaternionToEuler(float r, float i, float j, float k)
     // 3. YAW (Axe Z - Votre Azimut)
     float siny_cosp = 2 * (r * k + i * j);
     float cosy_cosp = 1 - 2 * (j * j + k * k);
-    angles.yaw = atan2(siny_cosp, cosy_cosp) * RAD_TO_DEG;
-
-    // Normalisation de l'Azimut (0 à 360°)
-    if (angles.yaw < 0)
-        angles.yaw += 360.0;
+    angles.yaw = normaliser180(atan2(siny_cosp, cosy_cosp) * RAD_TO_DEG);
 
     return angles;
 }

@@ -49,13 +49,19 @@ bool Telescope::setupOK = false;
 bool Telescope::automatique = false;
 bool Telescope::loopActif = false;
 
+int Telescope::nbCommandes = 0;
+int Telescope::commandes[Telescope::maxCommandes] = {0}; // Initialisation du tableau de commandes
+long Telescope::parms1[Telescope::maxCommandes] = {0};   // Initialisation du tableau de paramètres 1
+long Telescope::parms2[Telescope::maxCommandes] = {0};   // Initialisation du tableau de paramètres 2
+
 #define interval_us 10000 // Intervalle de 10 ms pour les rapports de capteurs
 void Telescope::setReports()
 {
     // Ici, vous pouvez activer les rapports de capteurs que vous souhaitez recevoir
     // Par exemple, pour obtenir les angles d'Euler stabilisés pour la réalité augmentée :
     // Initialiser le BNO08x et configurer les rapports de capteurs nécessaires
-    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV, 20000)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
+
+    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
     {
         Serial.println("Could not enable AR/VR stabilized rotation vector");
         log("Erreur lors de l'activation du rapport AR/VR stabilized rotation vector");
@@ -64,7 +70,7 @@ void Telescope::setReports()
     {
         log("Rapport AR/VR stabilized rotation vector activé avec succès");
     }
-    if (!bno08x.enableReport(SH2_ROTATION_VECTOR, 20000)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
+    if (!bno08x.enableReport(SH2_ROTATION_VECTOR, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
     {
         Serial.println("Could not enable rotation vector");
         log("Erreur lors de l'activation du rapport rotation vector");
@@ -73,7 +79,7 @@ void Telescope::setReports()
     {
         log("Rapport AR/VR stabilized rotation vector activé avec succès");
     }
-    if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, 20000)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
+    if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
     {
         Serial.println("Could not enable game rotation vector");
         log("Erreur lors de l'activation du rapport game rotation vector");
@@ -94,6 +100,7 @@ void Telescope::setup()
         log("Erreur de connexion au BNO08x");
         return;
     }
+    bno08x.hardwareReset(); // Réinitialisation du capteur pour s'assurer qu'il est dans un état propre
     setupOK = true;
     Serial.println("BNO08x connected!");
     MonEcran::log("Systeme Pret");
@@ -114,21 +121,17 @@ void Telescope::setup()
     motorALT.setMicrostepping(32); // Mode 1/16 pour plus de précision
     Serial.println("Moteurs prêts en mode 1/32 step.");
     log("Moteurs initialisés en mode 1/32 step");
-    calibrateMovement();
+    //addCommande(CMD_CalibrateMouvement); // Ajouter la commande de calibrage du mouvement à la liste des commandes à exécuter
     loopActif = true;
 }
-void Telescope::calibrateMovement()
-{
 #define stepsForCalibration 200
 #define Time2Wait 3000
-
-    log("Démarrage de la calibration des moteurs...");
-    WebServer::setActivated(false); // Désactiver le serveur Web pendant la calibration
-    MonEcran::setActivated(false);  // Désactiver l'écran pendant la calibration
-    Telescope::stop();
-    loopActif = false; // Désactiver la boucle principale pendant la calibration
-                       // Mesurer la réponse du capteur aux mouvements connus pour calculer les coefficients de conversion
-
+void Telescope::calibrateAZ()
+{
+    log("Démarrage de la calibration de l'axe AZ...");
+    // Ici, vous pouvez implémenter une procédure de calibration spécifique pour l'axe AZ
+    // Par exemple, vous pourriez faire tourner le moteur AZ d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe AZ
+    // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe AZ si nécessaire
     // calibrer AZ
     readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches
     ARVR_STABILIZED_RV_calibration.origineAZ = ARVR_STABILIZED_RV_anglesActuels.copie();
@@ -145,10 +148,14 @@ void Telescope::calibrateMovement()
     GAME_ROTATION_VECTOR_calibration.finAZ = GAME_ROTATION_VECTOR_anglesActuels.copie();
 
     Telescope::steps(-stepsForCalibration, 0);
-    while (isMoving())
-        delay(100);
-    delay(Time2Wait); // Attendre que les vibrations se calment
+}
 
+void Telescope::calibrateALT()
+{
+    log("Démarrage de la calibration de l'axe ALT...");
+    // Ici, vous pouvez implémenter une procédure de calibration spécifique pour l'axe ALT
+    // Par exemple, vous pourriez faire tourner le moteur ALT d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe ALT
+    // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe ALT si nécessaire
     // Calibrer ALT
     ARVR_STABILIZED_RV_calibration.origineALT = ARVR_STABILIZED_RV_anglesActuels.copie();
     ROTATION_VECTOR_calibration.origineALT = ROTATION_VECTOR_anglesActuels.copie();
@@ -164,12 +171,22 @@ void Telescope::calibrateMovement()
     GAME_ROTATION_VECTOR_calibration.finALT = GAME_ROTATION_VECTOR_anglesActuels.copie();
 
     Telescope::steps(0, -stepsForCalibration);
+}
+
+void Telescope::calibrateMovement()
+{
+    calibrateAZ();
+    while (isMoving())
+        delay(100);
+    delay(Time2Wait); // Attendre que les vibrations se calment
+
+    calibrateALT();
     log("Calibration terminée. Coefficients de conversion calculés :");
     // log("Delta AZ par step : Yaw " + String(arvr_deltaAZ.yaw, 6) + "°, Pitch " + String(arvr_deltaAZ.pitch, 6) + "°, Roll " + String(arvr_deltaAZ.roll, 6) + "°");
     // log("Delta ALT par step : Yaw " + String(arvr_deltaALT.yaw, 6) + "°, Pitch " + String(arvr_deltaALT.pitch, 6) + "°, Roll " + String(arvr_deltaALT.roll, 6) + "°");
-    WebServer::setActivated(true); // Réactiver le serveur Web après la calibration
-    MonEcran::setActivated(true);  // Réactiver l'écran après la calibration
-    loopActif = true;
+    // WebServer::setActivated(true); // Réactiver le serveur Web après la calibration
+    // MonEcran::setActivated(true);  // Réactiver l'écran après la calibration
+    // loopActif = true;
 }
 
 float Telescope::calculerAzimutVrai(float azimutMagnetique)
@@ -204,6 +221,38 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
+    if (nbCommandes > 0)
+    {
+        int cmd = commandes[0];
+        // Décaler les commandes restantes
+        for (int i = 1; i < nbCommandes; i++)
+        {
+            commandes[i - 1] = commandes[i];
+        }
+        nbCommandes--;
+        if (cmd == CMD_CalibrateMouvement)
+        {
+            calibrateMovement();
+        }
+        else if (cmd == CMD_Steps)
+        {
+            steps(parms1[0], parms2[0]);
+            // Décaler les paramètres restants
+            for (int i = 1; i < nbCommandes; i++)
+            {
+                parms1[i - 1] = parms1[i];
+                parms2[i - 1] = parms2[i];
+            }
+        }
+        else if (cmd == CMD_CalibrateAZ)
+        {
+            calibrateAZ();
+        }
+        else if (cmd == CMD_CalibrateALT)
+        {
+            calibrateALT();
+        }
+    }
 }
 
 void Telescope::setTarget(EulerAngles target, float tolerance, float maxSpeed)
@@ -294,73 +343,71 @@ void Telescope::readAnglesFromSensor(bool forceUpdate)
         Serial.print("sensor was reset ");
         setReports();
     }
+    Telescope::log("Lecture des angles depuis le capteur...");
     bool hasNewData = bno08x.getSensorEvent(&sensorValue);
     if (!hasNewData && !forceUpdate)
     {
         return; // Pas de nouvelle donnée et pas de forçage, on garde les angles actuels
     }
+    bool RV_received = false;
+    bool ARVR_received = false;
+    bool GRV_received = false;
+
     unsigned long startTime = millis();
-    while (!hasNewData && millis() - startTime < 1000) // Attendre jusqu'à 1000 ms pour obtenir de nouvelles données
+    while ((RV_received == false || ARVR_received == false || GRV_received == false) && millis() - startTime < 15000) // Attendre jusqu'à 15000 ms pour obtenir de nouvelles données
     {
-        delay(10);
-        hasNewData = bno08x.getSensorEvent(&sensorValue);
-    }
-    if (hasNewData)
-    {
-        Serial.println("Nouvelles données du capteur reçues.");
-    }
-    else
-    {
-        Serial.println("Aucune nouvelle donnée du capteur après 1 seconde.");
-        return;
-    }
-    while (hasNewData)
-    {
-        // Lire les angles actuels depuis le BNO08x
-        switch (sensorValue.sensorId)
+        if (hasNewData)
         {
-        case SH2_ARVR_STABILIZED_RV:
-            ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                sensorValue.un.arvrStabilizedRV.i,
-                sensorValue.un.arvrStabilizedRV.j,
-                sensorValue.un.arvrStabilizedRV.k,
-                sensorValue.un.arvrStabilizedRV.real);
-            // À ajouter dans votre fonction afficherInterface
-            ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
-            ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = micros();
-            ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
-            ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
-            ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
-            break;
-        case SH2_ROTATION_VECTOR:
-            ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                sensorValue.un.rotationVector.i,
-                sensorValue.un.rotationVector.j,
-                sensorValue.un.rotationVector.k,
-                sensorValue.un.rotationVector.real);
-            ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-            ROTATION_VECTOR_anglesActuels.esp_timestamp = micros();
-            ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-            ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
-            ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-            break;
-        case SH2_GAME_ROTATION_VECTOR:
-            GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                sensorValue.un.gameRotationVector.i,
-                sensorValue.un.gameRotationVector.j,
-                sensorValue.un.gameRotationVector.k,
-                sensorValue.un.gameRotationVector.real);
-            GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-            GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = micros();
-            GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-            GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
-            GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-            break;
-        default:
-            break;
+            // Lire les angles actuels depuis le BNO08x
+            switch (sensorValue.sensorId)
+            {
+            case SH2_ARVR_STABILIZED_RV:
+                ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
+                    sensorValue.un.arvrStabilizedRV.i,
+                    sensorValue.un.arvrStabilizedRV.j,
+                    sensorValue.un.arvrStabilizedRV.k,
+                    sensorValue.un.arvrStabilizedRV.real);
+                // À ajouter dans votre fonction afficherInterface
+                ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
+                ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
+                ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
+                ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
+                ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
+                ARVR_received = true;
+                break;
+            case SH2_ROTATION_VECTOR:
+                ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+                    sensorValue.un.rotationVector.i,
+                    sensorValue.un.rotationVector.j,
+                    sensorValue.un.rotationVector.k,
+                    sensorValue.un.rotationVector.real);
+                ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+                ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+                ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+                ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
+                ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+                RV_received = true;
+                break;
+            case SH2_GAME_ROTATION_VECTOR:
+                GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+                    sensorValue.un.gameRotationVector.i,
+                    sensorValue.un.gameRotationVector.j,
+                    sensorValue.un.gameRotationVector.k,
+                    sensorValue.un.gameRotationVector.real);
+                GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+                GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+                GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+                GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
+                GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+                GRV_received = true;
+                break;
+            default:
+                break;
+            }
         }
         hasNewData = bno08x.getSensorEvent(&sensorValue);
     }
+    Telescope::log("Fin de la lecture des angles depuis le capteur en " + String(millis() - startTime) + " ms...");
     return;
 }
 
@@ -442,8 +489,8 @@ void Telescope::log(String s)
     // Ajouter la nouvelle ligne en haut
     logBuffer[maxLogLines - 1] = s;
 }
-static uint32_t startTime = 0;
-String bnoTimestampToString(uint32_t ts_us,uint32_t esp_timestamp_us)
+static uint64_t startTime = 0;
+String bnoTimestampToString(uint64_t ts_us, uint64_t esp_timestamp_us)
 {
     if (startTime == 0)
     {
@@ -452,7 +499,7 @@ String bnoTimestampToString(uint32_t ts_us,uint32_t esp_timestamp_us)
     float seconds = (ts_us - startTime) / 1e6; // µs → secondes
 
     char buf[40];
-    snprintf(buf, sizeof(buf), "%d µs /%df µs", ts_us, esp_timestamp_us );
+    snprintf(buf, sizeof(buf), "%d µs /%d ms", ts_us, esp_timestamp_us);
 
     return String(buf);
 }

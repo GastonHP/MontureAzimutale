@@ -48,15 +48,17 @@ void WebServer::setup()
             String dir = request->getParam("dir")->value();
             Serial.println("Commande reçue: " + dir);
             // Ici, vous pouvez appeler les fonctions de contrôle du télescope en fonction de 'dir'
-            if (dir == "left")  Telescope::steps(100,0);   // 100 pas en Azimut
-            if (dir == "right") Telescope::steps(-100,0);
-            if (dir == "up")    Telescope::steps(0,100);    // 100 pas en Altitude
-            if (dir == "down")  Telescope::steps(0,-100);
+            if (dir == "left")  Telescope::addCommande(Telescope::CMD_Steps, 100, 0);   // 100 pas en Azimut
+            if (dir == "right") Telescope::addCommande(Telescope::CMD_Steps, -100, 0);
+            if (dir == "up")    Telescope::addCommande(Telescope::CMD_Steps, 0, 100);    // 100 pas en Altitude
+            if (dir == "down")  Telescope::addCommande(Telescope::CMD_Steps, 0, -100);
 
             if (dir == "stop")  Telescope::stop();     
             if (dir == "origine") Telescope::commanderMouvement(0, 0);
             if(dir == "calibrate") Telescope::calibrate();
-            if(dir == "calibrateMVT") Telescope::calibrateMovement();
+            if(dir == "calibrateMVT") Telescope::addCommande(Telescope::CMD_CalibrateMouvement);
+            if(dir == "calibrateAZ") Telescope::addCommande(Telescope::CMD_CalibrateAZ);
+            if(dir == "calibrateALT") Telescope::addCommande(Telescope::CMD_CalibrateALT);
         }
         request->send(200, "text/plain", "OK"); });
 

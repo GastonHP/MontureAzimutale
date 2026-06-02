@@ -20,15 +20,37 @@ public:
     static void commanderMouvement(float cibleAz, float cibleAlt);
     static void setMicrostepping(int ms);
     static void calibrate();
-    static void steps(long stepsAz, long stepsAlt);
+  
     static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
     // static EulerAngles getCurrentAngles(bool forceUpdate = false);
     static void readAnglesFromSensor(bool forceUpdate = false);
     static void stop();
-    static void calibrateMovement();
+    
     static void log(String s);
     static float calculerAzimutVrai(float azimutMagnetique);
     // static uint8_t getPrecision() { return precision; }
+    static bool addCommande(int cmd)
+    {
+        if (nbCommandes < maxCommandes)
+        {
+            commandes[nbCommandes++] = cmd;
+            return true;
+        }
+        return false;
+    }
+    static bool addCommande(int cmd, long parm1, long parm2)
+    {
+        if (nbCommandes < maxCommandes)
+        {
+            commandes[nbCommandes] = cmd;
+            parms1[nbCommandes] = parm1;
+            parms2[nbCommandes] = parm2;
+            nbCommandes++;
+            return true;
+        }
+        return false;
+    }
+    
 
     // OK
     static String getJson();
@@ -41,11 +63,26 @@ public:
     static Calibration ROTATION_VECTOR_calibration;
     static Calibration GAME_ROTATION_VECTOR_calibration;
 
+    static const int CMD_CalibrateMouvement = 1;
+    static const int CMD_Steps = 2;
+    static const int CMD_CalibrateAZ = 3;
+    static const int CMD_CalibrateALT = 4;
+
 private:
     static void display_angles(EulerAngles angles);
     static void dessinerBoussole(EulerAngles angles, bool vraiNord = true);
     static void dessinerNiveauVif(EulerAngles angles);
     static void setReports();
+    static void calibrateMovement();
+    static void calibrateAZ();
+    static void calibrateALT();
+    static void steps(long stepsAz, long stepsAlt);
+
+    static int nbCommandes;
+    static const int maxCommandes = 10;
+    static int commandes[]; // Stockage des commandes pour le calibrage du mouvement
+    static long parms1[]; // Stockage des paramètres pour les commandes de calibrage du mouvement
+    static long parms2[]; // Stockage des paramètres pour les commandes de calibrage du mouvement
 
     static MotorControl motorAZ;
     static MotorControl motorALT;

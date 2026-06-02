@@ -62,7 +62,6 @@
 </head>
 
 <body>
-    <h1>Telescope</h1>
     <table>
         <tr>
             <td>
@@ -124,6 +123,8 @@
                                 <div>Sats</div>
                                 <div id="sats" class="value">0</div>
                             </div>
+                            <button class="btn" style="background:#37ad51; width: 130px;"
+                                onclick="move('origine')">origine</button>
                             <br>
                             <div style="margin-top:20px;">
                                 <button class="btn" onclick="move('up')">up</button><br>
@@ -133,8 +134,11 @@
                                 <button class="btn" onclick="move('down')">down</button><br>
                             </div>
                             <div style="margin-top:20px;">
-                                <button class="btn" style="background:#37ad51; width: 130px;"
-                                    onclick="move('origine')">origine</button>
+
+                                <button class="btn" style="background:#4f3ba3;width: 130px;"
+                                    onclick="move('calibrateAZ')">calibration AZ</button>
+                                <button class="btn" style="background:#4f3ba3;width: 130px;"
+                                    onclick="move('calibrateALT')">calibration ALT</button>
                                 <button class="btn" style="background:#4f3ba3;width: 130px;"
                                     onclick="move('calibrate')">calibration</button>
                                 <button class="btn" style="background:#4f3ba3;width: 130px;"
@@ -146,27 +150,15 @@
                     </tr>
                 </table>
             </td>
-            <td style="vertical-align: top; padding-left: 20px;">
-                <div id="log0" class="log">l0xxxxxxxxxxxxxxxxxxxx</div>
-                <div id="log1" class="log">l1</div>
-                <div id="log2" class="log">l2</div>
-                <div id="log3" class="log">l3</div>
-                <div id="log4" class="log">l4</div>
-                <div id="log5" class="log">l5</div>
-                <div id="log6" class="log">l6</div>
-                <div id="log7" class="log">l7</div>
-                <div id="log8" class="log">l8</div>
-                <div id="log9" class="log">l9</div>
-                <div id="log10" class="log">l10</div>
-                <div id="log11" class="log">l11</div>
-                <div id="log12" class="log">l12</div>
-                <div id="log13" class="log">l13</div>
-                <div id="log14" class="log">l14</div>
-                <div id="log15" class="log">l15</div>
-                <div id="log16" class="log">l16</div>
-                <div id="log17" class="log">l17</div>
-                <div id="log18" class="log">l18</div>
-                <div id="log19" class="log">l19</div>
+            <td id="log" style="vertical-align: top; padding-left: 20px;">
+                l1og1<br>
+                l1og2<br>
+                l1og3<br>
+                l1og4<br>
+                l1og5<br>
+                l1og6<br>
+                l1og7<br>
+                l1og8<br>
             </td>
         </tr>
     </table>
