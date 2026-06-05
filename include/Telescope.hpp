@@ -29,17 +29,18 @@ public:
     static void log(String s);
     static float calculerAzimutVrai(float azimutMagnetique);
     // static uint8_t getPrecision() { return precision; }
-    static bool addCommande(int cmd)
+    // static bool addCommande(int cmd)
+    // {
+    //     if (nbCommandes < maxCommandes)
+    //     {
+    //         commandes[nbCommandes++] = cmd;
+    //         return true;
+    //     }
+    //     return false;
+    // }
+    static bool addCommande(int cmd, long parm1=0, long parm2=0)
     {
-        if (nbCommandes < maxCommandes)
-        {
-            commandes[nbCommandes++] = cmd;
-            return true;
-        }
-        return false;
-    }
-    static bool addCommande(int cmd, long parm1, long parm2)
-    {
+        log("Ajout de la commande " + String(cmd) + " avec parm1=" + String(parm1) + " et parm2=" + String(parm2));
         if (nbCommandes < maxCommandes)
         {
             commandes[nbCommandes] = cmd;
@@ -48,6 +49,7 @@ public:
             nbCommandes++;
             return true;
         }
+        log("Impossible d'ajouter la commande " + String(cmd) + " : nombre maximum de commandes atteint (" + String(maxCommandes) + ")");
         return false;
     }
     

@@ -27,7 +27,10 @@ sh2_SensorValue_t Telescope::sensorValue;
 #define PIN_M2 41
 
 #define PIN_EN 16
-#define PIN_SLEEP 38
+#define PIN_SLEEP 39
+#define PIN_BNO_INT 13
+#define PIN_BNO_RESET 21
+#define BNO_I2CADDR_DEFAULT 0x4B
 
 MotorControl Telescope::motorAZ(PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
 MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
@@ -40,7 +43,7 @@ Calibration Telescope::ARVR_STABILIZED_RV_calibration;
 Calibration Telescope::ROTATION_VECTOR_calibration;
 Calibration Telescope::GAME_ROTATION_VECTOR_calibration;
 
-Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(-1); // Utilisation du même reset pin que dans bno08x.cpp
+Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(PIN_BNO_RESET); // Utilisation du même reset pin que dans bno08x.cpp
 EulerAngles Telescope::anglesAAtteindre = EulerAngles(0.0f, 0.0f, 0.0f);
 
 float Telescope::tolerance = 0.5; // Tolérance par défaut en degrés
@@ -53,6 +56,12 @@ int Telescope::nbCommandes = 0;
 int Telescope::commandes[Telescope::maxCommandes] = {0}; // Initialisation du tableau de commandes
 long Telescope::parms1[Telescope::maxCommandes] = {0};   // Initialisation du tableau de paramètres 1
 long Telescope::parms2[Telescope::maxCommandes] = {0};   // Initialisation du tableau de paramètres 2
+
+// Variable volatile pour indiquer qu'une donnée est dispo (utilisée par l'interruption)
+static volatile bool bnoDataAvailable = false;
+    
+// Fonction ultra-courte appelée en arrière-plan dès que la broche INT passe à l'état BAS
+static void IRAM_ATTR bnoISR() { bnoDataAvailable = true; }
 
 #define interval_us 10000 // Intervalle de 10 ms pour les rapports de capteurs
 void Telescope::setReports()
@@ -94,10 +103,11 @@ void Telescope::setup()
 {
     setAutomatique(false);                // Par défaut, on démarre en mode manuel
     Wire.begin(sda_pin, scl_pin, 400000); // Initialisation du bus I2C à 400 kHz
-    if (!bno08x.begin_I2C(0x4B, &Wire))
+    if (!bno08x.begin_I2C(BNO_I2CADDR_DEFAULT, &Wire))
     {
         MonEcran::logError("Erreur BNO!");
         log("Erreur de connexion au BNO08x");
+        loopActif = true;
         return;
     }
     bno08x.hardwareReset(); // Réinitialisation du capteur pour s'assurer qu'il est dans un état propre
@@ -114,6 +124,11 @@ void Telescope::setup()
         Serial.println(s);
         MonEcran::log(s);
     }
+    // Configuration de l'interruption matérielle sur l'ESP32-S3
+    // On détecte le passage du niveau HAUT au niveau BAS (FALLING)
+    pinMode(PIN_BNO_INT, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(PIN_BNO_INT), bnoISR, FALLING);
+
     setReports();
     motorAZ.begin();
     motorAZ.setMicrostepping(32); // Mode 1/16 pour plus de précision
@@ -121,7 +136,7 @@ void Telescope::setup()
     motorALT.setMicrostepping(32); // Mode 1/16 pour plus de précision
     Serial.println("Moteurs prêts en mode 1/32 step.");
     log("Moteurs initialisés en mode 1/32 step");
-    //addCommande(CMD_CalibrateMouvement); // Ajouter la commande de calibrage du mouvement à la liste des commandes à exécuter
+    // addCommande(CMD_CalibrateMouvement); // Ajouter la commande de calibrage du mouvement à la liste des commandes à exécuter
     loopActif = true;
 }
 #define stepsForCalibration 200
@@ -223,35 +238,37 @@ void Telescope::loop()
         return;
     if (nbCommandes > 0)
     {
-        int cmd = commandes[0];
+        switch (commandes[0])
+        {
+        case CMD_CalibrateMouvement:
+            log("Exécution de la commande : Calibrage du mouvement");
+            calibrateMovement();
+            break;
+        case CMD_Steps:
+            log("Exécution de la commande : Mouvement de " + String(parms1[0]) + " pas AZ et " + String(parms2[0]) + " pas ALT");
+            steps(parms1[0], parms2[0]);
+            break;
+        case CMD_CalibrateAZ:
+            log("Exécution de la commande : Calibrage de l'axe AZ");
+            calibrateAZ();
+            break;
+        case CMD_CalibrateALT:
+            log("Exécution de la commande : Calibrage de l'axe ALT");
+            calibrateALT();
+            break;
+        default:
+            log("Commande inconnue : " + String(commandes[0]));
+            break;
+        }
         // Décaler les commandes restantes
         for (int i = 1; i < nbCommandes; i++)
         {
             commandes[i - 1] = commandes[i];
+            // Décaler les paramètres restants
+            parms1[i - 1] = parms1[i];
+            parms2[i - 1] = parms2[i];
         }
         nbCommandes--;
-        if (cmd == CMD_CalibrateMouvement)
-        {
-            calibrateMovement();
-        }
-        else if (cmd == CMD_Steps)
-        {
-            steps(parms1[0], parms2[0]);
-            // Décaler les paramètres restants
-            for (int i = 1; i < nbCommandes; i++)
-            {
-                parms1[i - 1] = parms1[i];
-                parms2[i - 1] = parms2[i];
-            }
-        }
-        else if (cmd == CMD_CalibrateAZ)
-        {
-            calibrateAZ();
-        }
-        else if (cmd == CMD_CalibrateALT)
-        {
-            calibrateALT();
-        }
     }
 }
 
@@ -537,10 +554,12 @@ String Telescope::getJson()
     json += "\"batt\":\"" + String(Batterie::lireTension(), 1) + "\",";
     json += "\"sats\":\"" + String(GPSManager::satellites()) + "\",";
 
-    for (int i = 0; i < Telescope::maxLogLines; i++)
+    String logConcatene = "";
+    for (int i = Telescope::maxLogLines - 1; i >= 0; i--)
     {
-        json += "\"log" + String(i) + "\":\"" + Telescope::logBuffer[i] + "\",";
+        logConcatene += Telescope::logBuffer[i] + "<br>";
     }
+    json += "\"log\":\"" + logConcatene + "\",";
     json += "\"EOJ\":\"---\"}";
     return json;
 }

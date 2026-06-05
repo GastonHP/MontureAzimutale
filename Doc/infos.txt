@@ -23,11 +23,14 @@ connexion du GY-BNO08x via bus I²C
         VCC                 3.3V    G
         GND                 GND     G/D
         SCL                 9       G
-                R4.7K       3.3V    G
+                    R4.7K   3.3V    G
         SDA                 8       G
-                R4.7K       3.3V    G
+                    R4.7K   3.3V    G
+        AD0 et CS   R4.7K   3.3V
         PS1                 GND     G/D
         PS0                 GND     G/D
+        RST                 21      D
+        INT                 13      G
 
 connexion du module GPS
 
@@ -43,8 +46,8 @@ connexion des drivers moteurs
         Step                    5   G
         Dir                     6   G
         En                      16  G
-        SLP                     38  G
-        RST                     38  G
+        SLP                     39  G
+        RST                     39  G
         M0                      2   D
         M1                      42  D
         M2                      41  D
@@ -57,8 +60,8 @@ connexion des drivers moteurs
         Step                    7   G
         Dir                     15  G
         En                      16  G
-        SLP                     38  G
-        RST                     38  G
+        SLP                     39  G
+        RST                     39  G
         M0                      2   D
         M1                      42  D
         M2                      41  D
@@ -71,10 +74,10 @@ connexion des drivers moteurs
 
 j'utilise un esp32-s3-devkitc-1 (flash 16M, Ram 8M) avec un GY-BNO085, un GMT020-02, un NEO-6M.
 Le GMT020-02 est câblé comme ceci : CS->10, DC->4, RST->14, MOSI->11, SCLK->12, codé avec Adafruit_ST7789 et alimenté par le 3.3V
-Le GY-BNO085, 240x320, adresse 0x4B est câblé en I²C : SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND, alimenté par le 3.3V et une capa de 1000µF entre GND et 3.3V
+Le GY-BNO085, 240x320, adresse 0x4B est câblé en I²C : INT->13, RST->21, SCL->9 avec pull-up 4.7k, SDA->8 avec pull-up 4.7k, PS1 et PS2 ->GND, AD0 et CS relié à une résistance de 4.7k reliée à 3.3V, alimenté par le 3.3V et une capa de 1000µF entre GND et 3.3V
 Le NEO-6M est câblé comme ceci : TXD->18, RXD->17 avec une capacité de 1000µF sur l'alimentation 3.3V et codé avec TinyGPSPlus
-le DRV8825 (Azimut) est câblé : step->5, Dir->6, En->16, SLP->38, RST->38
-le DRV8825 (Altitude) est câblé : step->7, Dir->15, En->16, SLP->38, RST->38
+le DRV8825 (Azimut) est câblé : step->5, Dir->6, En->16, SLP->39, RST->39
+le DRV8825 (Altitude) est câblé : step->7, Dir->15, En->16, SLP->39, RST->39
 les M0, M1 et M2 des DRV8825 sont branchés sur pin 2, 42 et 41 sur esp32
 premier moteur : 42byg304
 alimentation : batterie Bosch 18V avec module XH-M609 coupure à 16V, Hystérésis à 2V et module hw-083 pour le 3.3V 
@@ -82,4 +85,6 @@ alimentation : pont diviseur sur pin 1 du esp32 avec résistances de 300k et 51k
 le code est développé en platformio avec un framework arduino
 
 à faire :
-1. ajouter le switch sur l'alim des moteurs 
+pin 38 est devenu 39
+RST du BNO085 sur 21
+INT du BNO085 sur 13 

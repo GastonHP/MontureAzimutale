@@ -150,15 +150,8 @@
                     </tr>
                 </table>
             </td>
-            <td id="log" style="vertical-align: top; padding-left: 20px;">
-                l1og1<br>
-                l1og2<br>
-                l1og3<br>
-                l1og4<br>
-                l1og5<br>
-                l1og6<br>
-                l1og7<br>
-                l1og8<br>
+            <td style="vertical-align: top; padding-left: 20px;">
+                <div id="log">lignes log</div>
             </td>
         </tr>
     </table>
@@ -200,15 +193,7 @@
 
                 document.getElementById('batt').innerHTML = obj.batt + " V";
                 document.getElementById('sats').innerHTML = obj.sats;
-
-
-
-                for (var l = 0; l < 20; l++) {
-                    var logElement = document.getElementById('log' + l);
-                    if (logElement) {
-                        logElement.innerHTML = obj['log' + l];
-                    }
-                }
+                document.getElementById('log').innerHTML = obj.log; // Affiche la ligne de log la plus récente
             }, false);
         }
     </script>
