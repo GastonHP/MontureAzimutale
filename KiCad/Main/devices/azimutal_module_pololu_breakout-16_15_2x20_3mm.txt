@@ -1,0 +1,39 @@
+PACKAGE 'pololu_breakout-16_15_2x20_3mm'
+CLASS IC
+PINCOUNT 16
+PINORDER MAIN ,
+	GND__1,
+	??FLT?__2,
+	A2__3,
+	A1__4,
+	B1__5,
+	B2__6,
+	GND__7,
+	VMOT__8,
+	??EN?__9,
+	M0__10,
+	M1__11,
+	M2__12,
+	??RST?__13,
+	??SLP?__14,
+	STEP__15,
+	DIR__16
+FUNCTION MAIN MAIN ,
+	1,
+	2,
+	3,
+	4,
+	5,
+	6,
+	7,
+	8,
+	9,
+	10,
+	11,
+	12,
+	13,
+	14,
+	15,
+	16
+PACKAGEPROP VALUE Azimutal
+END

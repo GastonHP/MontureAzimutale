@@ -29,9 +29,11 @@ DallasTemperature sensors(&oneWire);
 #define BL_CHANNEL 0
 
 // --- BNO085 (I2C) ---
-#define SDA_PIN 21
-#define SCL_PIN 22
+#define BNO_SDA_PIN 21
+#define BNO_SCL_PIN 22
 #define BNO_ADDR 0x4B
+#define BNO_INT 34
+#define BNO_RST 35
 
 #ifdef ADAFRUIT_BNO085
 Adafruit_BNO08x bno08x = Adafruit_BNO08x();
@@ -68,16 +70,20 @@ static int cursorY = 22; // Position verticale de départ pour l'affichage des d
 void setup()
 {
   Serial.begin(115200);
+  Serial.println(String(millis(), DEC) + "Démarrage du test BNO085...");
 
   // --- PWM Backlight ---
+  Serial.println(String(millis(), DEC) + " :Initialisation du PWM pour le backlight...");
   ledcSetup(BL_CHANNEL, 5000, 8);
   ledcAttachPin(TFT_BL, BL_CHANNEL);
   ledcWrite(BL_CHANNEL, 63);
 
   // --- SPI écran ---
+  Serial.println(String(millis(), DEC) + " :Initialisation du SPI pour l'écran...");
   SPI.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, TFT_CS);
 
   // --- Init écran ---
+  Serial.println(String(millis(), DEC) + " :Initialisation de l'écran...");
   tft.init(240, 320);
   tft.setRotation(2);
   tft.fillScreen(ST77XX_BLACK);
@@ -86,12 +92,22 @@ void setup()
   tft.setTextSize(2);
   tft.setCursor(0, 0);
 
-  // --- Init I2C ---
-  Wire.begin(SDA_PIN, SCL_PIN, 400000);
+  // Initialisation du BNO08x
+  pinMode(BNO_RST, OUTPUT);
+  digitalWrite(BNO_RST, LOW);
+  // Attendre que le capteur soit bien réinitialisé
+  delay(20);
+  digitalWrite(BNO_RST, HIGH);
+  // Attendre que le BNO08x soit prêt après le reset
+  delay(100);
 
+  // --- Init I2C ---
+  //Serial.println(String(millis(), DEC) + " :Initialisation de l'I2C...");
+  Wire.begin(BNO_SDA_PIN, BNO_SCL_PIN, 400000);
 #ifdef ADAFRUIT_BNO085
   // delay(1000); // Attendre que le BNO08x soit prêt
   //  --- Init BNO085 ---
+  //Serial.println(String(millis(), DEC) + " :Initialisation du BNO085...");
   if (!bno08x.begin_I2C(BNO_ADDR, &Wire))
   {
     tft.println("BNO085 ERROR");
@@ -100,11 +116,13 @@ void setup()
   }
 
   // Précision maximale : RV + GRV à 50 Hz
+  Serial.println(String(millis(), DEC) + " :Configuration des rapports de capteurs...");
   bno08x.enableReport(SH2_ROTATION_VECTOR);
   // bno08x.enableReport(SH2_GAME_ROTATION_VECTOR);
   bno08x.enableReport(SH2_ARVR_STABILIZED_RV, 5000);
   tft.println("AdaFruit BNO085 OK");
-  Serial.println("BNO085 OK");
+  Serial.println(String(millis(), DEC) + " :BNO085 OK");
+
 #endif
 #ifdef SPARKFUN_BNO085
   if (!bno08x.begin(BNO_ADDR, Wire))
@@ -120,7 +138,7 @@ void setup()
   tft.println("SPARKFUN BNO085 OK");
   Serial.println("BNO085 OK");
 #endif
-tft.fillRect(0, cursorY-4, 240, 3, ST77XX_RED);
+  tft.fillRect(0, cursorY - 4, 240, 3, ST77XX_RED);
 #ifdef USE_TEMP_SENSOR
   // --- Init DS18B20 ---
   sensors.begin();
@@ -148,7 +166,7 @@ void gen_loop()
 void loop()
 {
   // Lire les données IMU
-  
+
   if (bno08x.getSensorEvent(&sensorValue))
   {
     if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV)

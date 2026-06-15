@@ -15,28 +15,32 @@
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
 #endif
 
+static void logGen(String s, bool LogFile = true)
+{
+  Serial.println("==>" + s);
+  MonEcran::log(s, 0);
+  if (LogFile == true)
+    Log::addLog(s);
+}
+
 void setup()
 {
   Serial.begin(SERIAL_SPEED);
-  delay(2000); // Laisse le temps au S3 de se stabiliser
-  RGB_LED_setup();
-  Log::addLog("RGB_LED_setup done.");
+  // Laisse le temps au S3 de se stabiliser
+  delay(2000);
   // setup de l'écran
   MonEcran::setup();
+  logGen("MonEcran::setup done.", false);
+  // setup de la LED RGB
+  RGB_LED_setup();
+  logGen("RGB_LED_setup done.", false);
   RGB_LED_SET(0, 0, 32, 15); // éteint la LED au démarrage
-  delay(500);
-  Serial.println(F("MonEcran::setup done."));
-
   // setup de la config wifi, mqtt, ftp, OTA, etc.
   Config::setup(MonEcran::log);
-  Log::addLog("Config::setup done.");
+  logGen("Config::setup done.");
   RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
-  Serial.println(F("Config::setup done."));
   generic_setup(MonEcran::log);
-  Log::addLog("generic_setup done.");
-
-  Serial.println(F("Setup after config done."));
-  MonEcran::log("Setup done.");
+  logGen("generic_setup done.");
 #ifdef SD_ACTIF
   SDisk::setup();
   Serial.println(F("Setup after SDisk done."));
@@ -47,23 +51,15 @@ void setup()
     // Attente active pour ne pas bloquer les autres tâches (comme l'OTA)
     generic_loop();
   }
-  // setup du GPS
-  GPSManager::setup(); // RX=18, TX=17
-  MonEcran::log("GPS setup done.");
-  Serial.println(F("GPS_setup done."));
-  Log::addLog("GPS_setup done.");
-  Serial.println(F("Setup after GPS done."));
   // setup du télescope (BNO08x, moteurs, écran)
   Telescope::setup();
-  MonEcran::log("Telescope setup done.");
-
-  MonEcran::log("Telescope GPS manager set.");
-  Serial.println(F("Telescope::setup done."));
-  Log::addLog("Telescope::setup done.");
-  // Telescope::steps(-100, 0); // Exemple : déplacer les moteurs de 100 pas
-  Telescope::readAnglesFromSensor();
-  // Telescope::setTarget(angles, 0.5, 50); // Cible les angles actuels pour tester le mode automatique
+  logGen("Telescope setup done.");
+  // setup du serveur Web pour afficher les données et permettre le contrôle à distance
   WebServer::setup();
+  logGen("WebServer setup done.");
+  // setup du GPS
+  GPSManager::setup(); // RX=18, TX=17
+  logGen("GPS manager set.");
 }
 
 unsigned long nextTime = 0;
@@ -76,7 +72,7 @@ void loop()
   generic_loop();
   if (OTA::started())
   {
-    Telescope::stop(); // Arrête les moteurs avant de faire quoi que ce soit d'autre
+    Telescope::stop();              // Arrête les moteurs avant de faire quoi que ce soit d'autre
     WebServer::setActivated(false); // Désactive le serveur Web pour éviter les conflits pendant l'OTA
     GPSManager::stop();
     return;

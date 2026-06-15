@@ -58,11 +58,30 @@ void MonEcran::setup()
     Serial.println(" en " + String(millis() - time, DEC) + "ms.");
 }
 
-void MonEcran::log(String s)
+void MonEcran::setTextSize(int size)
+{
+    monEcran.setTextSize(size);
+}
+
+void MonEcran::log(String s, int niveau)
 {
     monEcran.setTextSize(1);
-    monEcran.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-    monEcran.println(s);
+    switch (niveau)
+    {
+    case 0:
+        monEcran.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+        break;
+    case 1:
+        monEcran.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
+        break;
+    case 2:
+        monEcran.setTextColor(ST77XX_RED, ST77XX_BLACK);
+        monEcran.setTextSize(2);
+        break;
+    default:
+        monEcran.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    }
+    monEcran.println(String(millis(), DEC) + " :" + s);
 }
 
 void MonEcran::logError(String s)
@@ -81,7 +100,7 @@ void MonEcran::afficherBoussole(EulerAngles angles)
     azimut = Telescope::calculerAzimutVrai(azimut);
     couleurAiguille = ST77XX_GREEN;
 
-    int cX = 240;  // Centre X
+    int cX = 240; // Centre X
     int cY = 180; // Centre Y
     int r = 60;   // Rayon du cadran
 
@@ -138,7 +157,7 @@ void MonEcran::afficherNiveauBulle(EulerAngles angles)
     // 4. Effacer l'ancienne bulle (en la dessinant en noir)
     if (newX != oldX || newY != oldY)
         monEcran.fillCircle(oldX, oldY, 10, ST77XX_BLACK);
- 
+
     // 5. Dessiner la nouvelle bulle (Vert si proche du centre, rouge sinon)
     uint16_t couleurBulle = ST77XX_RED;
     if (abs(angles.pitch) < 0.2 && abs(angles.roll) < 0.2)
@@ -199,7 +218,7 @@ void MonEcran::afficherGPS()
     monEcran.drawRect(GPSX, GPSY, GPSW, GPSH, ST77XX_GREEN);
     monEcran.setCursor(GPSX + 2, GPSY + 2);
     monEcran.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-    monEcran.printf("UT: %s\n\r",GPSManager::timeString().c_str());
+    monEcran.printf("UT: %s\n\r", GPSManager::timeString().c_str());
     monEcran.setCursor(GPSX + 2, GPSY + LH);
     monEcran.printf("Sat:%7d\n\r", GPSManager::satellites());
     monEcran.setCursor(GPSX + 2, GPSY + 2 * LH);
@@ -221,9 +240,10 @@ void MonEcran::afficherQuadrilage(int step)
         monEcran.drawLine(0, y, monEcran.width(), y, ST77XX_CYAN);
     }
 }
+
 void MonEcran::loop()
 {
-    if(!activated)
+    if (!activated)
         return;
     static unsigned long lastDisplay = 0;
     static bool firstLoop = true;
@@ -236,7 +256,8 @@ void MonEcran::loop()
         firstLoop = false;
     }
     // affichage angles
-    Telescope::readAnglesFromSensor();
+    if (Telescope::isBno085Initialized())
+        Telescope::readAnglesFromSensor();
     EulerAngles angles = Telescope::ARVR_STABILIZED_RV_anglesActuels;
     afficherAngles(angles);
     // affichage Batterie
@@ -244,7 +265,7 @@ void MonEcran::loop()
     // affichage GPS
     afficherGPS();
     // affichage Niveau à bulle
-     afficherNiveauBulle(angles);
+    afficherNiveauBulle(angles);
     // affichage boussole
     afficherBoussole(angles);
     // affichage quadrillage

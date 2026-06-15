@@ -5,11 +5,15 @@
 #include "monEcran.hpp"
 #include "astronomy.h"
 #include "gpsManager.hpp"
+#include "log.hpp"
 
 #include <Wire.h>
 
-#define sda_pin 8
-#define scl_pin 9
+#define BNO_PIN_SDA 8
+#define BNO_PIN_SCL 9
+#define BNO_PIN_INT 13
+#define BNO_PIN_RST_UND -1 // 21
+#define BNO_I2CADDR_DEFAULT 0x4B
 
 sh2_SensorValue_t Telescope::sensorValue;
 
@@ -28,9 +32,8 @@ sh2_SensorValue_t Telescope::sensorValue;
 
 #define PIN_EN 16
 #define PIN_SLEEP 39
-#define PIN_BNO_INT 13
-#define PIN_BNO_RESET 21
-#define BNO_I2CADDR_DEFAULT 0x4B
+
+bool Telescope::bno085_initialized = false;
 
 MotorControl Telescope::motorAZ(PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
 MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
@@ -43,7 +46,7 @@ Calibration Telescope::ARVR_STABILIZED_RV_calibration;
 Calibration Telescope::ROTATION_VECTOR_calibration;
 Calibration Telescope::GAME_ROTATION_VECTOR_calibration;
 
-Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(PIN_BNO_RESET); // Utilisation du même reset pin que dans bno08x.cpp
+Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(BNO_PIN_RST_UND); // Utilisation du même reset pin que dans bno08x.cpp
 EulerAngles Telescope::anglesAAtteindre = EulerAngles(0.0f, 0.0f, 0.0f);
 
 float Telescope::tolerance = 0.5; // Tolérance par défaut en degrés
@@ -59,13 +62,25 @@ long Telescope::parms2[Telescope::maxCommandes] = {0};   // Initialisation du ta
 
 // Variable volatile pour indiquer qu'une donnée est dispo (utilisée par l'interruption)
 static volatile bool bnoDataAvailable = false;
-    
+
+static void logGen(String s, int niveau = 0)
+{
+    Serial.println("==>" + s);
+    Log::addLog(s);
+    MonEcran::log(s, niveau);
+}
+
 // Fonction ultra-courte appelée en arrière-plan dès que la broche INT passe à l'état BAS
 static void IRAM_ATTR bnoISR() { bnoDataAvailable = true; }
 
 #define interval_us 10000 // Intervalle de 10 ms pour les rapports de capteurs
 void Telescope::setReports()
 {
+    if (bno085_initialized == false)
+    {
+        log("Impossible de configurer les rapports de capteurs : BNO085 non initialisé");
+        return;
+    }
     // Ici, vous pouvez activer les rapports de capteurs que vous souhaitez recevoir
     // Par exemple, pour obtenir les angles d'Euler stabilisés pour la réalité augmentée :
     // Initialiser le BNO08x et configurer les rapports de capteurs nécessaires
@@ -101,41 +116,50 @@ void Telescope::setReports()
 
 void Telescope::setup()
 {
-    setAutomatique(false);                // Par défaut, on démarre en mode manuel
-    Wire.begin(sda_pin, scl_pin, 400000); // Initialisation du bus I2C à 400 kHz
+    setAutomatique(false); // Par défaut, on démarre en mode manuel
+    // Initialisation des moteurs pas à pas
+    motorAZ.begin();
+    motorALT.begin();
+    motorAZ.setMicrostepping(32);  // Mode 1/16 pour plus de précision
+    motorALT.setMicrostepping(32); // Mode 1/16 pour plus de précision
+    log("Moteurs initialisés en mode 1/32 step");
+
+    // // Initialisation du BNO08x
+    // pinMode(BNO_PIN_RST, OUTPUT);
+    // digitalWrite(BNO_PIN_RST, LOW);
+    // // Attendre que le capteur soit bien réinitialisé
+    // delay(20);
+    // digitalWrite(BNO_PIN_RST, HIGH);
+    // // Attendre que le BNO08x soit prêt après le reset
+    // delay(100);
+    // Initialisation du bus I2C à 400 kHz
+    Wire.begin(BNO_PIN_SDA, BNO_PIN_SCL, 400000);
+    delay(100); // Attendre que le bus I2C soit stable
     if (!bno08x.begin_I2C(BNO_I2CADDR_DEFAULT, &Wire))
     {
-        MonEcran::logError("Erreur BNO!");
-        log("Erreur de connexion au BNO08x");
+        logGen("Erreur de connexion au BNO08x", 2);
         loopActif = true;
         return;
     }
-    bno08x.hardwareReset(); // Réinitialisation du capteur pour s'assurer qu'il est dans un état propre
+    logGen("BNO08x connecté avec succès");
+    bno085_initialized = true;
+    // Configuration de l'interruption matérielle sur l'ESP32-S3
+    // On détecte le passage du niveau HAUT au niveau BAS (FALLING)
+    pinMode(BNO_PIN_INT, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(BNO_PIN_INT), bnoISR, FALLING);
+
     setupOK = true;
-    Serial.println("BNO08x connected!");
-    MonEcran::log("Systeme Pret");
-    log("BNO08x connecté avec succès");
+    logGen("Systeme Pret");
+    // Affichage des informations sur les produits détectés
     for (int n = 0; n < bno08x.prodIds.numEntries; n++)
     {
         String s = "Part " + String(bno08x.prodIds.entry[n].swPartNumber, HEX) +
                    ": Version :" + String(bno08x.prodIds.entry[n].swVersionMajor, HEX) + "." + String(bno08x.prodIds.entry[n].swVersionMinor, HEX) +
                    "." + String(bno08x.prodIds.entry[n].swVersionPatch, HEX) +
                    " Build " + String(bno08x.prodIds.entry[n].swBuildNumber, HEX);
-        Serial.println(s);
-        MonEcran::log(s);
+        logGen(s);
     }
-    // Configuration de l'interruption matérielle sur l'ESP32-S3
-    // On détecte le passage du niveau HAUT au niveau BAS (FALLING)
-    pinMode(PIN_BNO_INT, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(PIN_BNO_INT), bnoISR, FALLING);
-
     setReports();
-    motorAZ.begin();
-    motorAZ.setMicrostepping(32); // Mode 1/16 pour plus de précision
-    motorALT.begin();
-    motorALT.setMicrostepping(32); // Mode 1/16 pour plus de précision
-    Serial.println("Moteurs prêts en mode 1/32 step.");
-    log("Moteurs initialisés en mode 1/32 step");
     // addCommande(CMD_CalibrateMouvement); // Ajouter la commande de calibrage du mouvement à la liste des commandes à exécuter
     loopActif = true;
 }
@@ -144,6 +168,11 @@ void Telescope::setup()
 void Telescope::calibrateAZ()
 {
     log("Démarrage de la calibration de l'axe AZ...");
+    if (!bno085_initialized)
+    {
+        log("Impossible de calibrer l'axe AZ : BNO085 non initialisé");
+        return;
+    }
     // Ici, vous pouvez implémenter une procédure de calibration spécifique pour l'axe AZ
     // Par exemple, vous pourriez faire tourner le moteur AZ d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe AZ
     // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe AZ si nécessaire
@@ -168,6 +197,11 @@ void Telescope::calibrateAZ()
 void Telescope::calibrateALT()
 {
     log("Démarrage de la calibration de l'axe ALT...");
+    if (!bno085_initialized)
+    {
+        log("Impossible de calibrer l'axe ALT : BNO085 non initialisé");
+        return;
+    }
     // Ici, vous pouvez implémenter une procédure de calibration spécifique pour l'axe ALT
     // Par exemple, vous pourriez faire tourner le moteur ALT d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe ALT
     // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe ALT si nécessaire
@@ -190,6 +224,11 @@ void Telescope::calibrateALT()
 
 void Telescope::calibrateMovement()
 {
+    if (!bno085_initialized)
+    {
+        log("Impossible de calibrer le mouvement : BNO085 non initialisé");
+        return;
+    }
     calibrateAZ();
     while (isMoving())
         delay(100);
@@ -355,6 +394,11 @@ void Telescope::setAutomatique(bool autoMode) { automatique = autoMode; }
 
 void Telescope::readAnglesFromSensor(bool forceUpdate)
 {
+    if (bno085_initialized == false)
+    {
+        log("Lecture des angles depuis le capteur impossible : BNO085 non initialisé");
+        return;
+    }
     if (bno08x.wasReset())
     {
         Serial.print("sensor was reset ");

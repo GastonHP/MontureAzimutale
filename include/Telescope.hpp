@@ -20,14 +20,15 @@ public:
     static void commanderMouvement(float cibleAz, float cibleAlt);
     static void setMicrostepping(int ms);
     static void calibrate();
-  
+
     static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
     // static EulerAngles getCurrentAngles(bool forceUpdate = false);
     static void readAnglesFromSensor(bool forceUpdate = false);
     static void stop();
-    
+
     static void log(String s);
     static float calculerAzimutVrai(float azimutMagnetique);
+    static bool isBno085Initialized() { return bno085_initialized; }
     // static uint8_t getPrecision() { return precision; }
     // static bool addCommande(int cmd)
     // {
@@ -38,7 +39,7 @@ public:
     //     }
     //     return false;
     // }
-    static bool addCommande(int cmd, long parm1=0, long parm2=0)
+    static bool addCommande(int cmd, long parm1 = 0, long parm2 = 0)
     {
         log("Ajout de la commande " + String(cmd) + " avec parm1=" + String(parm1) + " et parm2=" + String(parm2));
         if (nbCommandes < maxCommandes)
@@ -52,7 +53,6 @@ public:
         log("Impossible d'ajouter la commande " + String(cmd) + " : nombre maximum de commandes atteint (" + String(maxCommandes) + ")");
         return false;
     }
-    
 
     // OK
     static String getJson();
@@ -83,8 +83,8 @@ private:
     static int nbCommandes;
     static const int maxCommandes = 10;
     static int commandes[]; // Stockage des commandes pour le calibrage du mouvement
-    static long parms1[]; // Stockage des paramètres pour les commandes de calibrage du mouvement
-    static long parms2[]; // Stockage des paramètres pour les commandes de calibrage du mouvement
+    static long parms1[];   // Stockage des paramètres pour les commandes de calibrage du mouvement
+    static long parms2[];   // Stockage des paramètres pour les commandes de calibrage du mouvement
 
     static MotorControl motorAZ;
     static MotorControl motorALT;
@@ -95,6 +95,7 @@ private:
 
     static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
     static sh2_SensorValue_t sensorValue;
+    static bool bno085_initialized;
 
     static bool setupOK;
     static bool automatique;
