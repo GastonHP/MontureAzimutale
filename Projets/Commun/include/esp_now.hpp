@@ -18,7 +18,7 @@ typedef struct struct_message
     uint64_t imu_timestamp; // Timestamp du capteur en microsecondes
     uint64_t esp_timestamp; // Timestamp de l'ESP en millisecondes
 
-    bool sent; // Indique si le message a été envoyé avec succès
+    bool sent = true; // Indique si le message a été envoyé avec succès
 } struct_message;
 
 // // ⚠️ METS ICI L'ADRESSE MAC DE TON ESP32-S3 PRINCIPAL

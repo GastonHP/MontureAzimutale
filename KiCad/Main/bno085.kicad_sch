@@ -2808,6 +2808,12 @@
 		(uuid "673e9f07-07b6-4b93-82bd-57cd68100d86")
 	)
 	(junction
+		(at 191.77 151.13)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "67fc4e2f-42cf-4e37-b6e7-de5a000db47b")
+	)
+	(junction
 		(at 81.28 20.32)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2848,6 +2854,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "8852510d-2779-4ce1-a22b-ee7328c40cfe")
+	)
+	(junction
+		(at 191.77 73.66)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8857fca0-5a34-48bf-8750-a6487cd90a1a")
 	)
 	(junction
 		(at 199.39 19.05)
@@ -3074,6 +3086,16 @@
 			(type default)
 		)
 		(uuid "0ab4a66d-af1a-4f85-93a5-8a3840b8a3c9")
+	)
+	(wire
+		(pts
+			(xy 250.19 130.81) (xy 191.77 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0ea86543-0569-4f97-a231-2a3277661170")
 	)
 	(wire
 		(pts
@@ -3347,6 +3369,16 @@
 	)
 	(wire
 		(pts
+			(xy 191.77 73.66) (xy 199.39 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "384597fd-707d-430c-99a8-23a83e3cb0c1")
+	)
+	(wire
+		(pts
 			(xy 50.8 20.32) (xy 81.28 20.32)
 		)
 		(stroke
@@ -3404,6 +3436,16 @@
 			(type default)
 		)
 		(uuid "48494d41-9e19-49ac-9d27-a4e52b5d0222")
+	)
+	(wire
+		(pts
+			(xy 191.77 133.35) (xy 191.77 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4913697a-d879-4dee-8526-a3b3bdb06306")
 	)
 	(wire
 		(pts
@@ -3597,6 +3639,16 @@
 	)
 	(wire
 		(pts
+			(xy 250.19 133.35) (xy 191.77 133.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a913858-7f51-4417-b7ae-0e479d5cb724")
+	)
+	(wire
+		(pts
 			(xy 199.39 50.8) (xy 240.03 50.8)
 		)
 		(stroke
@@ -3727,7 +3779,7 @@
 	)
 	(wire
 		(pts
-			(xy 170.18 73.66) (xy 199.39 73.66)
+			(xy 170.18 73.66) (xy 191.77 73.66)
 		)
 		(stroke
 			(width 0)
@@ -3997,7 +4049,7 @@
 	)
 	(wire
 		(pts
-			(xy 170.18 151.13) (xy 227.33 151.13)
+			(xy 170.18 151.13) (xy 191.77 151.13)
 		)
 		(stroke
 			(width 0)
@@ -4104,6 +4156,16 @@
 			(type default)
 		)
 		(uuid "bf41956d-3b06-4e20-a892-cb068210683e")
+	)
+	(wire
+		(pts
+			(xy 191.77 151.13) (xy 227.33 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c15e15a4-75b7-40d6-8ee2-128d9e5a6787")
 	)
 	(wire
 		(pts
@@ -4367,6 +4429,16 @@
 	)
 	(wire
 		(pts
+			(xy 191.77 130.81) (xy 191.77 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f534cb10-c9fe-4a20-8eca-481eec4a064e")
+	)
+	(wire
+		(pts
 			(xy 67.31 119.38) (xy 113.03 119.38)
 		)
 		(stroke
@@ -4434,6 +4506,88 @@
 			(type default)
 		)
 		(uuid "ffa3014c-cd06-44fc-bf94-46e8004e36c7")
+	)
+	(symbol
+		(lib_id "Connector:Conn_01x02_Pin")
+		(at 255.27 133.35 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "07f1c655-3f63-429c-8683-2dd4e36cf267")
+		(property "Reference" "J4"
+			(at 256.54 130.8099 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "Conn_01x02_Pin"
+			(at 256.54 133.3499 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" ""
+			(at 255.27 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 255.27 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Generic connector, single row, 01x02, script generated"
+			(at 255.27 133.35 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c280c7ee-0a39-4105-ae3c-5fb0fd3c3958")
+		)
+		(pin "2"
+			(uuid "11781a3c-e037-4d17-89d5-c574e58d0df5")
+		)
+		(instances
+			(project "main"
+				(path "/71abecfb-cf01-4845-b5b4-89a1f610326d/19b04c30-ba1c-490f-96af-2011eb9b2294"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
 	)
 	(symbol
 		(lib_id "Device:R")

@@ -5,7 +5,11 @@
 #include <esp_now.h>
 #include <Wire.h>
 #include <Adafruit_BNO08x.h>
-#include "../../../../MontureAzimutale/include/esp_now.hpp"
+#include "Config.hpp"
+#include "OTA.hpp"
+#include "log.hpp"
+
+#include "../../../Projets/Commun/include/esp_now.hpp"
 
 uint8_t s3Address[] = {0x34, 0x85, 0x18, 0x8F, 0x22, 0xB4};
 
@@ -26,15 +30,28 @@ const float SEUIL_MOUVEMENT = 0.0005;
 
 void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
 
+static void logGen(String s, bool LogFile = true)
+{
+    Serial.println("==>" + s);
+    if (LogFile == true)
+        Log::addLog(s);
+}
+
 void setup()
 {
+    Serial.setTxBufferSize(2048);
     Serial.begin(115200);
-    delay(1000);
 
-    WiFi.mode(WIFI_STA);
+    delay(1000);
+    Config::setup();
+    logGen("Config::setup() done.", false);
+#ifdef OTA_ACTIF
+    OTA::setup();
+#endif
+    WiFi.mode(WIFI_AP_STA);
     if (esp_now_init() != ESP_OK)
         return;
-
+    logGen("esp_now_init() done.");
     memcpy(peerInfo.peer_addr, s3Address, 6);
     peerInfo.channel = 0;
     peerInfo.encrypt = false;
@@ -50,11 +67,11 @@ void setup()
             delay(10);
         }
     }
-    #define interval_us 50000
+#define interval_us 50000
 
     bno.enableReport(SH2_ARVR_STABILIZED_RV, interval_us);
-    bno.enableReport(SH2_ROTATION_VECTOR, interval_us*3/2);
-    bno.enableReport(SH2_GAME_ROTATION_VECTOR, interval_us*7/3);
+    bno.enableReport(SH2_ROTATION_VECTOR, interval_us * 3 / 2);
+    bno.enableReport(SH2_GAME_ROTATION_VECTOR, interval_us * 7 / 3);
 
     attachInterrupt(digitalPinToInterrupt(BNO_INT_PIN), bnoInterrupt, FALLING);
 
@@ -64,36 +81,45 @@ void setup()
     strncpy(imuData_SH2_ARVR_STABILIZED_RV.messageText, "ARVR_STABILIZED_RV", sizeof(imuData_SH2_ROTATION_VECTOR.messageText));
     strncpy(imuData_SH2_GAME_ROTATION_VECTOR.messageText, "GAME_ROTATION_VECTOR", sizeof(imuData_SH2_ROTATION_VECTOR.messageText));
 
-
-    Serial.println("🚀 Émetteur prêt avec structure enrichie !");
+    Serial.println("🚀 Émetteur prêt !");
 }
 
 unsigned long lastSendTime = 0;
 
-void testAndSend(struct_message *m)
+int testAndSend(struct_message *m)
 {
     if (!m->sent)
     {
         // Envoi complet (la taille s'adapte automatiquement avec sizeof)
         esp_now_send(s3Address, (uint8_t *)&m, sizeof(m));
-        Serial.printf("%d:Envoi réussi de [%s] | Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->messageText, m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
+        //Serial.printf("%d:espTS=%d:imuTS=%d:Envoi réussi de [%s] |", millis(), m->esp_timestamp, m->imu_timestamp, m->messageText);
+        Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n",millis(), m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
         m->sent = true;
+        return 1;
     }
+    return 0;
 }
-void sendIMUData()
+int sendIMUData()
 {
-    testAndSend(&imuData_SH2_ROTATION_VECTOR);
-    testAndSend(&imuData_SH2_ARVR_STABILIZED_RV);
-    testAndSend(&imuData_SH2_GAME_ROTATION_VECTOR);
+    int n = 0;
+    n += testAndSend(&imuData_SH2_ROTATION_VECTOR);
+    n += testAndSend(&imuData_SH2_ARVR_STABILIZED_RV);
+    n += testAndSend(&imuData_SH2_GAME_ROTATION_VECTOR);
+    return n;
 }
 
 void loop()
 {
-    //delay(10);                           // Petite pause pour éviter de saturer le processeur
+#ifdef OTA_ACTIF
+    OTA::loop();
+#endif
+    // delay(10);                           // Petite pause pour éviter de saturer le processeur
     if (millis() - lastSendTime >= 1000) // Envoi toutes les 50 ms
     {
         lastSendTime = millis();
-        sendIMUData();
+        int n = sendIMUData();
+        if (n > 0)
+            Log::addLog("sendIMUData():" + String(n, DEC));
     }
     if (bnoDataReady)
     {
@@ -101,6 +127,7 @@ void loop()
 
         while (bno.getSensorEvent(&sensorValue))
         {
+            // Log::addLog("bno getEvent", true);
             // On vérifie le type reçu du BNO085
             // Serial.print("*");
             if (sensorValue.sensorId == SH2_ROTATION_VECTOR)
