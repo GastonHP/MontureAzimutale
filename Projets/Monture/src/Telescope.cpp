@@ -133,8 +133,8 @@ void Telescope::setup()
     // // Attendre que le BNO08x soit prêt après le reset
     // delay(100);
     // Initialisation du bus I2C à 400 kHz
-    Wire.begin(BNO_PIN_SDA, BNO_PIN_SCL, 400000);
-    delay(100); // Attendre que le bus I2C soit stable
+    Wire.begin(BNO_PIN_SDA, BNO_PIN_SCL, 100000); // 100 kHz pour le BNO08x
+    delay(200); // Attendre que le bus I2C soit stable
     if (!bno08x.begin_I2C(BNO_I2CADDR_DEFAULT, &Wire))
     {
         logGen("Erreur de connexion au BNO08x", 2);

@@ -1,22 +1,36 @@
 {
 	"folders": [
 		{
+			"name": "MontureAzimutale",
 			"path": "."
 		},
 		{
+			"name": "Monture",
+			"path": "Projets/Monture"
+		},
+		{
+			"name": "Capteur BNO085",
+			"path": "Projets/Capteur BNO085"
+		},
+		{
+			"name": "test bno085",
+			"path": "Tests/test bno085"
+		},
+		{
+			"name": "lib",
 			"path": "../lib"
 		},
 		{
-			"path": "D:/tmp/pio/MontureAzimutale"
+			"name": "pio_test_bno85",
+			"path": "D:/tmp/pio/pio_test_bno85"
 		},
 		{
-			"path": "test bno085"
+			"name": "pio_MontureAzimutale",
+			"path": "D:/tmp/pio/pio_MontureAzimutale"
 		},
 		{
-			"path": "test drv8825"
-		},
-		{
-			"path": "D:/tmp/pio/test bno85"
+			"name": "pio_Capteur_BNO085",
+			"path": "D:/tmp/pio/pio_Capteur_BNO085"
 		}
 	],
 	"settings": {
