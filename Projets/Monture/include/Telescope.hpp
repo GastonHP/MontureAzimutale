@@ -22,8 +22,6 @@ public:
     static void calibrate();
 
     static bool isMoving() { return motorAZ.isMoving() || motorALT.isMoving(); }
-    // static EulerAngles getCurrentAngles(bool forceUpdate = false);
-    static void readAnglesFromSensor(bool forceUpdate = false);
     static void stop();
 
     static void log(String s);

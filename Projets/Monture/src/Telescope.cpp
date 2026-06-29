@@ -8,6 +8,7 @@
 #include "log.hpp"
 
 #include <Wire.h>
+#include "imu.hpp"
 
 // #define BNO_PIN_SDA 8
 // #define BNO_PIN_SCL 9
@@ -33,7 +34,7 @@
 #define PIN_EN 16
 #define PIN_SLEEP 39
 
-bool Telescope::bno085_initialized = false;
+ bool Telescope::bno085_initialized = false;
 
 MotorControl Telescope::motorAZ(PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
 MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
@@ -127,25 +128,20 @@ void Telescope::setup()
 void Telescope::calibrateAZ()
 {
     log("Démarrage de la calibration de l'axe AZ...");
-    if (!bno085_initialized)
-    {
-        log("Impossible de calibrer l'axe AZ : BNO085 non initialisé");
-        return;
-    }
+
     // Ici, vous pouvez implémenter une procédure de calibration spécifique pour l'axe AZ
     // Par exemple, vous pourriez faire tourner le moteur AZ d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe AZ
     // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe AZ si nécessaire
     // calibrer AZ
-    readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches
-    ARVR_STABILIZED_RV_calibration.origineAZ = ARVR_STABILIZED_RV_anglesActuels.copie();
-    ROTATION_VECTOR_calibration.origineAZ = ROTATION_VECTOR_anglesActuels.copie();
-    GAME_ROTATION_VECTOR_calibration.origineAZ = GAME_ROTATION_VECTOR_anglesActuels.copie();
+    Imu::saveMessage(SH2_ARVR_STABILIZED_RV);
+    Imu::saveMessage(SH2_ROTATION_VECTOR);
+    Imu::saveMessage(SH2_GAME_ROTATION_VECTOR);
     Telescope::steps(stepsForCalibration, 0); // Test de mouvement sur l'axe AZ
     while (isMoving())
         delay(100);
     delay(Time2Wait); // Attendre que les vibrations se calment
 
-    readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
+    //readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
     ARVR_STABILIZED_RV_calibration.finAZ = ARVR_STABILIZED_RV_anglesActuels.copie();
     ROTATION_VECTOR_calibration.finAZ = ROTATION_VECTOR_anglesActuels.copie();
     GAME_ROTATION_VECTOR_calibration.finAZ = GAME_ROTATION_VECTOR_anglesActuels.copie();
@@ -173,7 +169,7 @@ void Telescope::calibrateALT()
         delay(100);
     delay(Time2Wait); // Attendre que les vibrations se calment
 
-    readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
+    //readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
     ARVR_STABILIZED_RV_calibration.finALT = ARVR_STABILIZED_RV_anglesActuels.copie();
     ROTATION_VECTOR_calibration.finALT = ROTATION_VECTOR_anglesActuels.copie();
     GAME_ROTATION_VECTOR_calibration.finALT = GAME_ROTATION_VECTOR_anglesActuels.copie();
@@ -234,6 +230,12 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
+    struct_message *m = Imu::getNewMessage();
+    if (m != nullptr)
+    {
+        Telescope::log("Msg : sensorId=" + String(m->sensorId, DEC));
+        m->treated = true;
+    }
     if (nbCommandes > 0)
     {
         switch (commandes[0])
@@ -351,85 +353,85 @@ void Telescope::commanderMouvement(float cibleAz, float cibleAlt)
 
 void Telescope::setAutomatique(bool autoMode) { automatique = autoMode; }
 
-void Telescope::readAnglesFromSensor(bool forceUpdate)
-{
-    if (bno085_initialized == false)
-    {
-        log("Lecture des angles depuis le capteur impossible : BNO085 non initialisé");
-        return;
-    }
-    // if (bno08x.wasReset())
-    // {
-    //     Serial.print("sensor was reset ");
-    //     setReports();
-    // }
-    // Telescope::log("Lecture des angles depuis le capteur...");
-    // bool hasNewData = bno08x.getSensorEvent(&sensorValue);
-    // if (!hasNewData && !forceUpdate)
-    // {
-    //     return; // Pas de nouvelle donnée et pas de forçage, on garde les angles actuels
-    // }
-    // bool RV_received = false;
-    // bool ARVR_received = false;
-    // bool GRV_received = false;
+// void Telescope::readAnglesFromSensor(bool forceUpdate)
+// {
+//     if (bno085_initialized == false)
+//     {
+//         log("Lecture des angles depuis le capteur impossible : BNO085 non initialisé");
+//         return;
+//     }
+//     // if (bno08x.wasReset())
+//     // {
+//     //     Serial.print("sensor was reset ");
+//     //     setReports();
+//     // }
+//     // Telescope::log("Lecture des angles depuis le capteur...");
+//     // bool hasNewData = bno08x.getSensorEvent(&sensorValue);
+//     // if (!hasNewData && !forceUpdate)
+//     // {
+//     //     return; // Pas de nouvelle donnée et pas de forçage, on garde les angles actuels
+//     // }
+//     // bool RV_received = false;
+//     // bool ARVR_received = false;
+//     // bool GRV_received = false;
 
-    // unsigned long startTime = millis();
-    // while ((RV_received == false || ARVR_received == false || GRV_received == false) && millis() - startTime < 15000) // Attendre jusqu'à 15000 ms pour obtenir de nouvelles données
-    // {
-    //     if (hasNewData)
-    //     {
-    //         // Lire les angles actuels depuis le BNO08x
-    //         switch (sensorValue.sensorId)
-    //         {
-    //         case SH2_ARVR_STABILIZED_RV:
-    //             ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
-    //                 sensorValue.un.arvrStabilizedRV.i,
-    //                 sensorValue.un.arvrStabilizedRV.j,
-    //                 sensorValue.un.arvrStabilizedRV.k,
-    //                 sensorValue.un.arvrStabilizedRV.real);
-    //             // À ajouter dans votre fonction afficherInterface
-    //             ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
-    //             ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
-    //             ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
-    //             ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
-    //             ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
-    //             ARVR_received = true;
-    //             break;
-    //         case SH2_ROTATION_VECTOR:
-    //             ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-    //                 sensorValue.un.rotationVector.i,
-    //                 sensorValue.un.rotationVector.j,
-    //                 sensorValue.un.rotationVector.k,
-    //                 sensorValue.un.rotationVector.real);
-    //             ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-    //             ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
-    //             ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-    //             ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
-    //             ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-    //             RV_received = true;
-    //             break;
-    //         case SH2_GAME_ROTATION_VECTOR:
-    //             GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-    //                 sensorValue.un.gameRotationVector.i,
-    //                 sensorValue.un.gameRotationVector.j,
-    //                 sensorValue.un.gameRotationVector.k,
-    //                 sensorValue.un.gameRotationVector.real);
-    //             GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-    //             GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
-    //             GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-    //             GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
-    //             GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-    //             GRV_received = true;
-    //             break;
-    //         default:
-    //             break;
-    //         }
-    //     }
-    //     hasNewData = bno08x.getSensorEvent(&sensorValue);
-    // }
-    // Telescope::log("Fin de la lecture des angles depuis le capteur en " + String(millis() - startTime) + " ms...");
-    return;
-}
+//     // unsigned long startTime = millis();
+//     // while ((RV_received == false || ARVR_received == false || GRV_received == false) && millis() - startTime < 15000) // Attendre jusqu'à 15000 ms pour obtenir de nouvelles données
+//     // {
+//     //     if (hasNewData)
+//     //     {
+//     //         // Lire les angles actuels depuis le BNO08x
+//     //         switch (sensorValue.sensorId)
+//     //         {
+//     //         case SH2_ARVR_STABILIZED_RV:
+//     //             ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
+//     //                 sensorValue.un.arvrStabilizedRV.i,
+//     //                 sensorValue.un.arvrStabilizedRV.j,
+//     //                 sensorValue.un.arvrStabilizedRV.k,
+//     //                 sensorValue.un.arvrStabilizedRV.real);
+//     //             // À ajouter dans votre fonction afficherInterface
+//     //             ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
+//     //             ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
+//     //             ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
+//     //             ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
+//     //             ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
+//     //             ARVR_received = true;
+//     //             break;
+//     //         case SH2_ROTATION_VECTOR:
+//     //             ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+//     //                 sensorValue.un.rotationVector.i,
+//     //                 sensorValue.un.rotationVector.j,
+//     //                 sensorValue.un.rotationVector.k,
+//     //                 sensorValue.un.rotationVector.real);
+//     //             ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+//     //             ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+//     //             ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+//     //             ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
+//     //             ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+//     //             RV_received = true;
+//     //             break;
+//     //         case SH2_GAME_ROTATION_VECTOR:
+//     //             GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+//     //                 sensorValue.un.gameRotationVector.i,
+//     //                 sensorValue.un.gameRotationVector.j,
+//     //                 sensorValue.un.gameRotationVector.k,
+//     //                 sensorValue.un.gameRotationVector.real);
+//     //             GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+//     //             GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+//     //             GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+//     //             GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
+//     //             GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+//     //             GRV_received = true;
+//     //             break;
+//     //         default:
+//     //             break;
+//     //         }
+//     //     }
+//     //     hasNewData = bno08x.getSensorEvent(&sensorValue);
+//     // }
+//     // Telescope::log("Fin de la lecture des angles depuis le capteur en " + String(millis() - startTime) + " ms...");
+//     return;
+// }
 
 void Telescope::steps(long stepsAz, long stepsAlt)
 {

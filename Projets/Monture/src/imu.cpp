@@ -9,19 +9,57 @@ struct_message Imu::data[MAX_IMU_DATA];
 void Imu::setup()
 {
     for (int i = 0; i < MAX_IMU_DATA; i++)
-        data[i].sensorId = -1;
+    {
+        data[i].sensorId = NO_SENSOR_ID;
+        data[i].treated = true;
+    }
     Communication::setup(Config::NetworkHP());
 }
 
-struct_message *Imu::getMessage(int sensorID)
+struct_message *Imu::getSavedMessage(uint8_t sensorID)
+{
+    return getMessage(sensorID | 0x80);
+}
+
+bool Imu::saveMessage(uint8_t sensorId)
+{
+    struct_message *m = getMessage(sensorId);
+    if (m != nullptr)
+    {
+        struct_message *s = getMessage(sensorId | 0x80);
+        if (s != nullptr)
+        {
+            memcpy(s, m, sizeof(struct_message));
+            return true;
+        }
+    }
+    return false;
+}
+struct_message *Imu::getNewMessage()
+{
+    for (int i = 0; i < MAX_IMU_DATA; i++)
+        if (data[i].treated == false && data[i].sensorId != NO_SENSOR_ID)
+        {
+            return &data[i];
+        }
+    return nullptr;
+}
+
+struct_message *Imu::getMessage(uint8_t sensorID)
 {
     for (int i = 0; i < MAX_IMU_DATA; i++)
         if (data[i].sensorId == sensorID)
             return &data[i];
+    for (int i = 0; i < MAX_IMU_DATA; i++)
+        if (data[i].sensorId == NO_SENSOR_ID)
+        {
+            data[i].sensorId = sensorID;
+            return &data[i];
+        }
     return nullptr;
 }
 
-EulerAngles Imu::getEulerAngles(int sensorId)
+EulerAngles Imu::getEulerAngles(uint8_t sensorId)
 {
     struct_message *m = getMessage(sensorId);
     if (m == nullptr)
@@ -47,8 +85,6 @@ EulerAngles Imu::getEulerAngles(int sensorId)
 bool Imu::addMessage(struct_message *m)
 {
     struct_message *dest = getMessage(m->sensorId);
-    if (dest == nullptr)
-        dest = getMessage(-1);
     if (dest == nullptr)
         return false;
     memcpy(dest, m, sizeof(struct_message));

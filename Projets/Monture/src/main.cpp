@@ -75,12 +75,12 @@ void loop()
   generic_loop();
   if (OTA::started())
   {
-    Telescope::stop();              // Arrête les moteurs avant de faire quoi que ce soit d'autre
+    Telescope::stop();               // Arrête les moteurs avant de faire quoi que ce soit d'autre
     MonServeur::setActivated(false); // Désactive le serveur Web pour éviter les conflits pendant l'OTA
     GPSManager::stop();
     return;
   }
-
+  Imu::loop();
   MonServeur::loop();
   GPSManager::loop();
   Telescope::loop();
