@@ -1,39 +1,20 @@
-#include "WebServer.hpp"
+#include "MonServeur.hpp"
 #include "Telescope.hpp"
 #include "Batterie.hpp"
 #include "GHFS.hpp"
-//
-AsyncWebServer WebServer::server(80);
-bool WebServer::activated = false;
+#include "html_autogen.h"
 
-String menuFile = "menu.html";
-String htmlMenu = "";
+//
+AsyncWebServer MonServeur::server(80);
+bool MonServeur::activated = false;
 
 AsyncEventSource events("/events");
 
-String WebServer::getHtml()
-{
-    if (htmlMenu.length() == 0)
-    {
-        File file = GHFS::open(menuFile);
-        if (!file)
-        {
-#ifdef DEBUG
-            Serial.println("Failed to open file for reading");
-#endif
-            return "<!DOCTYPE html> <html><head><title>Error</title></head><body>Menu.html not found!</body></html>";
-        }
-        htmlMenu = file.readString();
-        file.close();
-    }
-    return htmlMenu;
-}
-
-void WebServer::setup()
+void MonServeur::setup()
 {
     // Route pour la page d'accueil
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-              { request->send_P(200, "text/html", getHtml().c_str()); });
+              { request->send_P(200, "text/html", INDEX_HTML); });
     // Route pour reboot
     server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request)
               { 
@@ -69,7 +50,7 @@ void WebServer::setup()
 
 static bool stopped = false;
 
-// void WebServer::stop()
+// void MonServeur::stop()
 // {
 //     if (!stopped)
 //     {
@@ -79,7 +60,7 @@ static bool stopped = false;
 //     }
 // }
 
-void WebServer::setActivated(bool state)
+void MonServeur::setActivated(bool state)
 {
     if (state == true && activated == false)
     {
@@ -92,7 +73,7 @@ void WebServer::setActivated(bool state)
     activated = state;
 }
 
-void WebServer::loop()
+void MonServeur::loop()
 {
     if (stopped || !activated)
         return;

@@ -28,7 +28,7 @@ public:
 
     static void log(String s);
     static float calculerAzimutVrai(float azimutMagnetique);
-    static bool isBno085Initialized() { return bno085_initialized; }
+    //static bool isBno085Initialized() { return bno085_initialized; }
     // static uint8_t getPrecision() { return precision; }
     // static bool addCommande(int cmd)
     // {
@@ -93,8 +93,8 @@ private:
     static float tolerance;
     static float maxSpeed;
 
-    static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
-    static sh2_SensorValue_t sensorValue;
+    // static Adafruit_BNO08x bno08x; // Utilisation du même reset pin que dans bno08x.cpp
+    // static sh2_SensorValue_t sensorValue;
     static bool bno085_initialized;
 
     static bool setupOK;

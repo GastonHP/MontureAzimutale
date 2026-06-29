@@ -3,7 +3,7 @@
 #include <ESPAsyncWebServer.h>
 #include <WiFi.h>
 
-class WebServer
+class MonServeur
 {
 public:
     static void setup();
@@ -11,7 +11,6 @@ public:
     static void setActivated(bool state) ;
 
 private:
-    static String getHtml();
     static AsyncWebServer server;
     static bool activated;
 };

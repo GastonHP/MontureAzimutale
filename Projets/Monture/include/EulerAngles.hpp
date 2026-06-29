@@ -22,11 +22,13 @@ public:
     float pitch; // Inclinaison
     float roll;  // Roulis
 
+    float accuracy; // Précision des données (si disponible)
+
     uint64_t bno_timestamp; // Timestamp pour la validation des données
-    uint64_t esp_timestamp;     // Timestamp pour la validation des données
-    uint8_t sensorId;   // ID du capteur pour identifier la source des données
-    float accuracy;     // Précision des données (si disponible)
-    uint8_t precision;    // Précision des données (si disponible)
+    uint64_t esp_timestamp; // Timestamp pour la validation des données
+    uint8_t sensorId;       // ID du capteur pour identifier la source des données
+    uint8_t precision;      // Précision des données (si disponible)
+    bool valid = false;
 
 private:
 };

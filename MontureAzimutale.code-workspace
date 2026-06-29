@@ -5,12 +5,12 @@
 			"path": "."
 		},
 		{
-			"name": "Monture",
-			"path": "Projets/Monture"
-		},
-		{
 			"name": "Capteur BNO085",
 			"path": "Projets/Capteur BNO085"
+		},
+		{
+			"name": "Monture",
+			"path": "Projets/Monture"
 		},
 		{
 			"name": "test bno085",

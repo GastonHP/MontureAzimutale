@@ -256,8 +256,8 @@ void MonEcran::loop()
         firstLoop = false;
     }
     // affichage angles
-    if (Telescope::isBno085Initialized())
-        Telescope::readAnglesFromSensor();
+    // if (Telescope::isBno085Initialized())
+    //     Telescope::readAnglesFromSensor();
     EulerAngles angles = Telescope::ARVR_STABILIZED_RV_anglesActuels;
     afficherAngles(angles);
     // affichage Batterie

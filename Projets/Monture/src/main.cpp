@@ -8,8 +8,9 @@
 
 #include "EulerAngles.hpp"
 #include "Telescope.hpp"
-#include "WebServer.hpp"
+#include "MonServeur.hpp"
 #include "monEcran.hpp"
+#include "imu.hpp"
 
 #ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
@@ -55,11 +56,13 @@ void setup()
   Telescope::setup();
   logGen("Telescope setup done.");
   // setup du serveur Web pour afficher les données et permettre le contrôle à distance
-  WebServer::setup();
-  logGen("WebServer setup done.");
+  MonServeur::setup();
+  logGen("MonServeur setup done.");
   // setup du GPS
   GPSManager::setup(); // RX=18, TX=17
   logGen("GPS manager set.");
+  Imu::setup();
+  logGen("imu setup done!");
 }
 
 unsigned long nextTime = 0;
@@ -73,13 +76,18 @@ void loop()
   if (OTA::started())
   {
     Telescope::stop();              // Arrête les moteurs avant de faire quoi que ce soit d'autre
-    WebServer::setActivated(false); // Désactive le serveur Web pour éviter les conflits pendant l'OTA
+    MonServeur::setActivated(false); // Désactive le serveur Web pour éviter les conflits pendant l'OTA
     GPSManager::stop();
     return;
   }
 
-  WebServer::loop();
+  MonServeur::loop();
   GPSManager::loop();
   Telescope::loop();
   MonEcran::loop();
+  if (millis() > nextTime)
+  {
+    nextTime = millis() + 5000;
+    Log::addLog("Still alive!");
+  }
 }

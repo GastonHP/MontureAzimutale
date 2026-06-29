@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<!-- test -->
+<head>
+    <title>Capteur bno085</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background: #1a1a1a;
+            color: #eee;
+        }
+
+        .card {
+            background: #333;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        .value {
+            font-size: 1.2em;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+
+        .delta {
+            font-size: 1.2em;
+            color: #9dff00;
+            font-weight: bold;
+        }
+
+        .btn {
+            padding: 20px;
+            font-size: 20px;
+            width: 80px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background: #444;
+            color: white;
+        }
+
+        .btn:active {
+            background: #666;
+        }
+
+        .log {
+            background: #222;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            text-align: left;
+            font-family: monospace;
+            color: #0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <table>
+        <tr>
+            <td>
+                <table style="margin: 0 auto; border-width: 5px; border-color: #555; border-style: solid;">
+                    <tr style="background: #555;">
+                        <td></td>
+                        <td>r</td>
+                        <td>i</td>
+                        <td>j</td>
+                        <td>k</td>
+                        <td>Accuracy</td>
+                        <td>Precision</td>
+                        <td>TS imu</td>
+                        <td>TS esp</td>
+                    </tr>
+                    <tr style="background: #333;">
+                        <td>ARVR</td>
+                        <td id="arvr_r" class="value">0.0</td>
+                        <td id="arvr_i" class="value">0.0</td>
+                        <td id="arvr_j" class="value">0.0</td>
+                        <td id="arvr_k" class="value">0.0</td>
+                        <td id="arvr_accuracy" class="value">0.0</td>
+                        <td id="arvr_precision" class="value">0</td>
+                        <td id="arvr_imuTS" class="value">TS: --</td>
+                        <td id="arvr_espTS" class="value">TS: --</td>
+                    </tr>
+                    <tr style="background: #333;">
+                        <td>RV</td>
+                        <td id="rv_r" class="value">0.0</td>
+                        <td id="rv_i" class="value">0.0</td>
+                        <td id="rv_j" class="value">0.0</td>
+                        <td id="rv_k" class="value">0.0</td>
+                        <td id="rv_accuracy" class="value">0.0</td>
+                        <td id="rv_precision" class="value">0</td>
+                        <td id="rv_imuTS" class="value">TS: --</td>
+                        <td id="rv_espTS" class="value">TS: --</td>
+                    </tr>
+                    <tr style="background: #333;">
+                        <td>GRV</td>
+                        <td id="grv_r" class="value">0.0</td>
+                        <td id="grv_i" class="value">0.0</td>
+                        <td id="grv_j" class="value">0.0</td>
+                        <td id="grv_k" class="value">0.0</td>
+                        <td id="grv_accuracy" class="value">0.0</td>
+                        <td id="grv_precision" class="value">0</td>
+                        <td id="grv_imuTS" class="value">TS: --</td>
+                        <td id="grv_espTS" class="value">TS: --</td>
+                    </tr>
+                </table>
+                <table style="margin: 0 auto;">
+                    <tr>
+                        <td>
+                            <div style="margin-top:20px;">
+                                <button class="btn" onclick="move('left')">left</button>
+                                <button class="btn" style="background:#d32f2f" onclick="move('stop')">stop</button>
+                            </div>
+                            <div style="margin-top:20px;">
+                                <button class="btn" style="background:#4f3ba3;width: 130px;"
+                                    onclick="move('calibrate')">calibration</button>
+                                <button class="btn" style="background:#4f3ba3;width: 130px;"
+                                    onclick="move('calibrateMVT')">calibration<br>mouvement</button><br>
+                                <button class="btn" style="background:#4f3ba3;width: 130px;"
+                                    onclick="reboot()">reboot</button><br>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Channel : </td>
+                        <td id="channel">cccccccccc</td>
+                    </tr>
+                    <tr>
+                        <td>SSID : </td>
+                        <td id="ssid">cccccccccc</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" id="test">
+                            test à faire bbbbb
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td style="vertical-align: top; padding-left: 20px;">
+                <div id="log">lignes log</div>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        function reboot() { fetch('/reboot'); }
+        function move(dir) { fetch('/control?dir=' + dir); }
+        // Écoute les mises à jour automatiques du serveur
+        if (!!window.EventSource) {
+            var source = new EventSource('/events');
+            source.addEventListener('data_update', function (e) {
+                var obj = JSON.parse(e.data);
+                document.getElementById('channel').innerHTML = obj.channel;
+                document.getElementById('ssid').innerHTML = obj.ssid;
+                document.getElementById('test').innerHTML = obj.test.texte;
+                document.getElementById('arvr_r').innerHTML = obj.arvr_r;
+                document.getElementById('arvr_i').innerHTML = obj.arvr_i;
+                document.getElementById('arvr_j').innerHTML = obj.arvr_j;
+                document.getElementById('arvr_k').innerHTML = obj.arvr_k;
+                document.getElementById('arvr_accuracy').innerHTML = obj.arvr_accuracy;
+                document.getElementById('arvr_precision').innerHTML = obj.arvr_precision;
+                document.getElementById('arvr_imuTS').innerHTML = obj.arvr_imuTS;
+                document.getElementById('arvr_espTS').innerHTML = obj.arvr_espTS;
+
+                document.getElementById('rv_r').innerHTML = obj.rv_r;
+                document.getElementById('rv_i').innerHTML = obj.rv_i;
+                document.getElementById('rv_j').innerHTML = obj.rv_j;
+                document.getElementById('rv_k').innerHTML = obj.rv_k;
+                document.getElementById('rv_accuracy').innerHTML = obj.rv_accuracy;
+                document.getElementById('rv_precision').innerHTML = obj.rv_precision;
+                document.getElementById('rv_imuTS').innerHTML = obj.rv_imuTS;
+                document.getElementById('rv_espTS').innerHTML = obj.rv_espTS;
+
+                document.getElementById('grv_r').innerHTML = obj.grv_r;
+                document.getElementById('grv_i').innerHTML = obj.grv_i;
+                document.getElementById('grv_j').innerHTML = obj.grv_j;
+                document.getElementById('grv_k').innerHTML = obj.grv_k;
+                document.getElementById('grv_accuracy').innerHTML = obj.grv_accuracy;
+                document.getElementById('grv_precision').innerHTML = obj.grv_precision;
+                document.getElementById('grv_imuTS').innerHTML = obj.grv_imuTS;
+                document.getElementById('grv_espTS').innerHTML = obj.grv_espTS;
+
+                document.getElementById('log').innerHTML = obj.log; // Affiche la ligne de log la plus récente
+            }, false);
+        }
+    </script>
+</body>
+
+</html>

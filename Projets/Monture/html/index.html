@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-
+<!-- test v -->
 <head>
     <title>Telescope Control Center</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -148,6 +148,14 @@
                             </div>
                         </td>
                     </tr>
+                    <tr>
+                        <td>Channel : </td>
+                        <td id="channel">cccccccccc</td>
+                    </tr>
+                    <tr>
+                        <td>SSID : </td>
+                        <td id="ssid">cccccccccc</td>
+                    </tr>
                 </table>
             </td>
             <td style="vertical-align: top; padding-left: 20px;">
@@ -164,6 +172,8 @@
             var source = new EventSource('/events');
             source.addEventListener('data_update', function (e) {
                 var obj = JSON.parse(e.data);
+                document.getElementById('channel').innerHTML = obj.channel;
+                document.getElementById('ssid').innerHTML = obj.ssid;
                 document.getElementById('arvr_yaw').innerHTML = obj.arvr_yaw + "&deg;"; // ° est un caractère spécial, on peut aussi utiliser "°"
                 document.getElementById('arvr_pitch').innerHTML = obj.arvr_pitch + "&deg;";
                 document.getElementById('arvr_roll').innerHTML = obj.arvr_roll + "&deg;";

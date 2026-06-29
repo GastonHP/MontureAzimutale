@@ -1,7 +1,7 @@
 #include "Telescope.hpp"
 
 #include "Batterie.hpp"
-#include "WebServer.hpp"
+#include "MonServeur.hpp"
 #include "monEcran.hpp"
 #include "astronomy.h"
 #include "gpsManager.hpp"
@@ -9,13 +9,13 @@
 
 #include <Wire.h>
 
-#define BNO_PIN_SDA 8
-#define BNO_PIN_SCL 9
-#define BNO_PIN_INT 13
-#define BNO_PIN_RST_UND -1 // 21
-#define BNO_I2CADDR_DEFAULT 0x4B
+// #define BNO_PIN_SDA 8
+// #define BNO_PIN_SCL 9
+// #define BNO_PIN_INT 13
+// #define BNO_PIN_RST_UND -1 // 21
+// #define BNO_I2CADDR_DEFAULT 0x4B
 
-sh2_SensorValue_t Telescope::sensorValue;
+// sh2_SensorValue_t Telescope::sensorValue;
 
 // Instanciation globale
 // Azimut : Step 5, Dir 6 | Altitude : Step 7, Dir 15
@@ -46,7 +46,7 @@ Calibration Telescope::ARVR_STABILIZED_RV_calibration;
 Calibration Telescope::ROTATION_VECTOR_calibration;
 Calibration Telescope::GAME_ROTATION_VECTOR_calibration;
 
-Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(BNO_PIN_RST_UND); // Utilisation du même reset pin que dans bno08x.cpp
+// Adafruit_BNO08x Telescope::bno08x = Adafruit_BNO08x(BNO_PIN_RST_UND); // Utilisation du même reset pin que dans bno08x.cpp
 EulerAngles Telescope::anglesAAtteindre = EulerAngles(0.0f, 0.0f, 0.0f);
 
 float Telescope::tolerance = 0.5; // Tolérance par défaut en degrés
@@ -73,47 +73,6 @@ static void logGen(String s, int niveau = 0)
 // Fonction ultra-courte appelée en arrière-plan dès que la broche INT passe à l'état BAS
 static void IRAM_ATTR bnoISR() { bnoDataAvailable = true; }
 
-#define interval_us 10000 // Intervalle de 10 ms pour les rapports de capteurs
-void Telescope::setReports()
-{
-    if (bno085_initialized == false)
-    {
-        log("Impossible de configurer les rapports de capteurs : BNO085 non initialisé");
-        return;
-    }
-    // Ici, vous pouvez activer les rapports de capteurs que vous souhaitez recevoir
-    // Par exemple, pour obtenir les angles d'Euler stabilisés pour la réalité augmentée :
-    // Initialiser le BNO08x et configurer les rapports de capteurs nécessaires
-
-    if (!bno08x.enableReport(SH2_ARVR_STABILIZED_RV, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
-    {
-        Serial.println("Could not enable AR/VR stabilized rotation vector");
-        log("Erreur lors de l'activation du rapport AR/VR stabilized rotation vector");
-    }
-    else
-    {
-        log("Rapport AR/VR stabilized rotation vector activé avec succès");
-    }
-    if (!bno08x.enableReport(SH2_ROTATION_VECTOR, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
-    {
-        Serial.println("Could not enable rotation vector");
-        log("Erreur lors de l'activation du rapport rotation vector");
-    }
-    else
-    {
-        log("Rapport AR/VR stabilized rotation vector activé avec succès");
-    }
-    if (!bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, interval_us)) // Rapport de rotation vector AR/VR stabilisé à 20 ms (50 Hz)
-    {
-        Serial.println("Could not enable game rotation vector");
-        log("Erreur lors de l'activation du rapport game rotation vector");
-    }
-    else
-    {
-        log("Rapport AR/VR stabilized rotation vector activé avec succès");
-    }
-}
-
 void Telescope::setup()
 {
     setAutomatique(false); // Par défaut, on démarre en mode manuel
@@ -133,33 +92,33 @@ void Telescope::setup()
     // // Attendre que le BNO08x soit prêt après le reset
     // delay(100);
     // Initialisation du bus I2C à 400 kHz
-    Wire.begin(BNO_PIN_SDA, BNO_PIN_SCL, 100000); // 100 kHz pour le BNO08x
-    delay(200); // Attendre que le bus I2C soit stable
-    if (!bno08x.begin_I2C(BNO_I2CADDR_DEFAULT, &Wire))
-    {
-        logGen("Erreur de connexion au BNO08x", 2);
-        loopActif = true;
-        return;
-    }
-    logGen("BNO08x connecté avec succès");
-    bno085_initialized = true;
-    // Configuration de l'interruption matérielle sur l'ESP32-S3
-    // On détecte le passage du niveau HAUT au niveau BAS (FALLING)
-    pinMode(BNO_PIN_INT, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(BNO_PIN_INT), bnoISR, FALLING);
+    // Wire.begin(BNO_PIN_SDA, BNO_PIN_SCL, 100000); // 100 kHz pour le BNO08x
+    // delay(200); // Attendre que le bus I2C soit stable
+    // if (!bno08x.begin_I2C(BNO_I2CADDR_DEFAULT, &Wire))
+    // {
+    //     logGen("Erreur de connexion au BNO08x", 2);
+    //     loopActif = true;
+    //     return;
+    // }
+    // logGen("BNO08x connecté avec succès");
+    // bno085_initialized = true;
+    // // Configuration de l'interruption matérielle sur l'ESP32-S3
+    // // On détecte le passage du niveau HAUT au niveau BAS (FALLING)
+    // pinMode(BNO_PIN_INT, INPUT_PULLUP);
+    // attachInterrupt(digitalPinToInterrupt(BNO_PIN_INT), bnoISR, FALLING);
 
     setupOK = true;
     logGen("Systeme Pret");
-    // Affichage des informations sur les produits détectés
-    for (int n = 0; n < bno08x.prodIds.numEntries; n++)
-    {
-        String s = "Part " + String(bno08x.prodIds.entry[n].swPartNumber, HEX) +
-                   ": Version :" + String(bno08x.prodIds.entry[n].swVersionMajor, HEX) + "." + String(bno08x.prodIds.entry[n].swVersionMinor, HEX) +
-                   "." + String(bno08x.prodIds.entry[n].swVersionPatch, HEX) +
-                   " Build " + String(bno08x.prodIds.entry[n].swBuildNumber, HEX);
-        logGen(s);
-    }
-    setReports();
+    // // Affichage des informations sur les produits détectés
+    // for (int n = 0; n < bno08x.prodIds.numEntries; n++)
+    // {
+    //     String s = "Part " + String(bno08x.prodIds.entry[n].swPartNumber, HEX) +
+    //                ": Version :" + String(bno08x.prodIds.entry[n].swVersionMajor, HEX) + "." + String(bno08x.prodIds.entry[n].swVersionMinor, HEX) +
+    //                "." + String(bno08x.prodIds.entry[n].swVersionPatch, HEX) +
+    //                " Build " + String(bno08x.prodIds.entry[n].swBuildNumber, HEX);
+    //     logGen(s);
+    // }
+    // setReports();
     // addCommande(CMD_CalibrateMouvement); // Ajouter la commande de calibrage du mouvement à la liste des commandes à exécuter
     loopActif = true;
 }
@@ -238,7 +197,7 @@ void Telescope::calibrateMovement()
     log("Calibration terminée. Coefficients de conversion calculés :");
     // log("Delta AZ par step : Yaw " + String(arvr_deltaAZ.yaw, 6) + "°, Pitch " + String(arvr_deltaAZ.pitch, 6) + "°, Roll " + String(arvr_deltaAZ.roll, 6) + "°");
     // log("Delta ALT par step : Yaw " + String(arvr_deltaALT.yaw, 6) + "°, Pitch " + String(arvr_deltaALT.pitch, 6) + "°, Roll " + String(arvr_deltaALT.roll, 6) + "°");
-    // WebServer::setActivated(true); // Réactiver le serveur Web après la calibration
+    // MonServeur::setActivated(true); // Réactiver le serveur Web après la calibration
     // MonEcran::setActivated(true);  // Réactiver l'écran après la calibration
     // loopActif = true;
 }
@@ -399,76 +358,76 @@ void Telescope::readAnglesFromSensor(bool forceUpdate)
         log("Lecture des angles depuis le capteur impossible : BNO085 non initialisé");
         return;
     }
-    if (bno08x.wasReset())
-    {
-        Serial.print("sensor was reset ");
-        setReports();
-    }
-    Telescope::log("Lecture des angles depuis le capteur...");
-    bool hasNewData = bno08x.getSensorEvent(&sensorValue);
-    if (!hasNewData && !forceUpdate)
-    {
-        return; // Pas de nouvelle donnée et pas de forçage, on garde les angles actuels
-    }
-    bool RV_received = false;
-    bool ARVR_received = false;
-    bool GRV_received = false;
+    // if (bno08x.wasReset())
+    // {
+    //     Serial.print("sensor was reset ");
+    //     setReports();
+    // }
+    // Telescope::log("Lecture des angles depuis le capteur...");
+    // bool hasNewData = bno08x.getSensorEvent(&sensorValue);
+    // if (!hasNewData && !forceUpdate)
+    // {
+    //     return; // Pas de nouvelle donnée et pas de forçage, on garde les angles actuels
+    // }
+    // bool RV_received = false;
+    // bool ARVR_received = false;
+    // bool GRV_received = false;
 
-    unsigned long startTime = millis();
-    while ((RV_received == false || ARVR_received == false || GRV_received == false) && millis() - startTime < 15000) // Attendre jusqu'à 15000 ms pour obtenir de nouvelles données
-    {
-        if (hasNewData)
-        {
-            // Lire les angles actuels depuis le BNO08x
-            switch (sensorValue.sensorId)
-            {
-            case SH2_ARVR_STABILIZED_RV:
-                ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                    sensorValue.un.arvrStabilizedRV.i,
-                    sensorValue.un.arvrStabilizedRV.j,
-                    sensorValue.un.arvrStabilizedRV.k,
-                    sensorValue.un.arvrStabilizedRV.real);
-                // À ajouter dans votre fonction afficherInterface
-                ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
-                ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
-                ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
-                ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
-                ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
-                ARVR_received = true;
-                break;
-            case SH2_ROTATION_VECTOR:
-                ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                    sensorValue.un.rotationVector.i,
-                    sensorValue.un.rotationVector.j,
-                    sensorValue.un.rotationVector.k,
-                    sensorValue.un.rotationVector.real);
-                ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-                ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
-                ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-                ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
-                ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-                RV_received = true;
-                break;
-            case SH2_GAME_ROTATION_VECTOR:
-                GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
-                    sensorValue.un.gameRotationVector.i,
-                    sensorValue.un.gameRotationVector.j,
-                    sensorValue.un.gameRotationVector.k,
-                    sensorValue.un.gameRotationVector.real);
-                GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-                GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
-                GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
-                GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
-                GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
-                GRV_received = true;
-                break;
-            default:
-                break;
-            }
-        }
-        hasNewData = bno08x.getSensorEvent(&sensorValue);
-    }
-    Telescope::log("Fin de la lecture des angles depuis le capteur en " + String(millis() - startTime) + " ms...");
+    // unsigned long startTime = millis();
+    // while ((RV_received == false || ARVR_received == false || GRV_received == false) && millis() - startTime < 15000) // Attendre jusqu'à 15000 ms pour obtenir de nouvelles données
+    // {
+    //     if (hasNewData)
+    //     {
+    //         // Lire les angles actuels depuis le BNO08x
+    //         switch (sensorValue.sensorId)
+    //         {
+    //         case SH2_ARVR_STABILIZED_RV:
+    //             ARVR_STABILIZED_RV_anglesActuels = EulerAngles::getEulerFromQuaternion(
+    //                 sensorValue.un.arvrStabilizedRV.i,
+    //                 sensorValue.un.arvrStabilizedRV.j,
+    //                 sensorValue.un.arvrStabilizedRV.k,
+    //                 sensorValue.un.arvrStabilizedRV.real);
+    //             // À ajouter dans votre fonction afficherInterface
+    //             ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
+    //             ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
+    //             ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
+    //             ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
+    //             ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
+    //             ARVR_received = true;
+    //             break;
+    //         case SH2_ROTATION_VECTOR:
+    //             ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+    //                 sensorValue.un.rotationVector.i,
+    //                 sensorValue.un.rotationVector.j,
+    //                 sensorValue.un.rotationVector.k,
+    //                 sensorValue.un.rotationVector.real);
+    //             ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+    //             ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+    //             ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+    //             ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
+    //             ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+    //             RV_received = true;
+    //             break;
+    //         case SH2_GAME_ROTATION_VECTOR:
+    //             GAME_ROTATION_VECTOR_anglesActuels = EulerAngles::getEulerFromQuaternion(
+    //                 sensorValue.un.gameRotationVector.i,
+    //                 sensorValue.un.gameRotationVector.j,
+    //                 sensorValue.un.gameRotationVector.k,
+    //                 sensorValue.un.gameRotationVector.real);
+    //             GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
+    //             GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+    //             GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
+    //             GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
+    //             GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
+    //             GRV_received = true;
+    //             break;
+    //         default:
+    //             break;
+    //         }
+    //     }
+    //     hasNewData = bno08x.getSensorEvent(&sensorValue);
+    // }
+    // Telescope::log("Fin de la lecture des angles depuis le capteur en " + String(millis() - startTime) + " ms...");
     return;
 }
 
@@ -549,6 +508,7 @@ void Telescope::log(String s)
     }
     // Ajouter la nouvelle ligne en haut
     logBuffer[maxLogLines - 1] = s;
+    Log::addLog(s);
 }
 static uint64_t startTime = 0;
 String bnoTimestampToString(uint64_t ts_us, uint64_t esp_timestamp_us)
@@ -568,6 +528,8 @@ String bnoTimestampToString(uint64_t ts_us, uint64_t esp_timestamp_us)
 String Telescope::getJson()
 {
     String json = "{";
+    json += "\"ssid\": \"" + WiFi.SSID() + "\",";
+    json += "\"channel\": " + String(WiFi.channel(), DEC) + ",";
     json += "\"arvr_yaw\":" + String(ARVR_STABILIZED_RV_anglesActuels.yaw, 2) + ",";
     json += "\"arvr_pitch\":" + String(ARVR_STABILIZED_RV_anglesActuels.pitch, 2) + ",";
     json += "\"arvr_roll\":" + String(ARVR_STABILIZED_RV_anglesActuels.roll, 2) + ",";
