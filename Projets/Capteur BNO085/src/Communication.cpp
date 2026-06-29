@@ -4,7 +4,7 @@
 String targetIP = "";
 WiFiClient clientCapteur;
 
-// ... (Garde ta structure struct_message et imuData)
+// ... (Garde ta structure IMUData et imuData)
 
 void Communication::setup(bool networkHP = true)
 {
@@ -35,7 +35,7 @@ void Communication::setup(bool networkHP = true)
     }
 }
 unsigned long nextTime = 0;
-bool Communication::send(struct_message *incomingData)
+bool Communication::send(IMUData *incomingData)
 {
     // Le reste du code du loop() TCP précédent reste EXACTEMENT le même !
     if (!clientCapteur.connected() && millis() < nextTime)
@@ -54,7 +54,7 @@ bool Communication::send(struct_message *incomingData)
         }
     }
 
-    clientCapteur.write((uint8_t *)incomingData, sizeof(struct_message));
+    clientCapteur.write((uint8_t *)incomingData, sizeof(IMUData));
     clientCapteur.flush();
     return true;
 }

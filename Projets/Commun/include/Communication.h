@@ -12,9 +12,9 @@
 // const char* ap_ssid       = "Telescope_Net";
 // const char* ap_password   = "12345678"; // 8 caractères min.
 
-typedef struct struct_message
+typedef struct IMUData
 {
-    //char messageText[32];
+    // char messageText[32];
     uint8_t sensorId;
     float accuracy;
     uint8_t precision;
@@ -29,7 +29,7 @@ typedef struct struct_message
 
     bool sent = true; // Indique si le message a été envoyé avec succès
     bool treated = false;
-} struct_message;
+} IMUData;
 
 // // ⚠️ METS ICI L'ADRESSE MAC DE TON ESP32-S3 PRINCIPAL
 // uint8_t s3Address228[] = {0x98, 0x3D, 0xAE, 0x61, 0x9B, 0x64};

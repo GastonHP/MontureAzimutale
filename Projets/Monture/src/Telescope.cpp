@@ -34,7 +34,7 @@
 #define PIN_EN 16
 #define PIN_SLEEP 39
 
- bool Telescope::bno085_initialized = false;
+bool Telescope::bno085_initialized = false;
 
 MotorControl Telescope::motorAZ(PIN_AZ_STEP, PIN_AZ_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
 MotorControl Telescope::motorALT(PIN_ALT_STEP, PIN_ALT_DIR, PIN_M0, PIN_M1, PIN_M2, PIN_EN, PIN_SLEEP);
@@ -230,7 +230,7 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
-    struct_message *m = Imu::getNewMessage();
+    IMUData *m = Imu::getNewMessage();
     if (m != nullptr)
     {
         Telescope::log("Msg : sensorId=" + String(m->sensorId, DEC));

@@ -4,11 +4,11 @@
 static WiFiServer tcpServer(portTCP);
 static WiFiClient clientS3;
 
-struct_message Communication::incomingData;
+IMUData Communication::incomingData;
 
-// ... (Garde ta structure struct_message et ta variable incomingData)
+// ... (Garde ta structure IMUData et ta variable incomingData)
 
-struct_message *Communication::getData() { return &incomingData; }
+IMUData *Communication::getData() { return &incomingData; }
 
 void Communication::setup(bool SSIDFound = true)
 {
@@ -42,7 +42,7 @@ bool Communication::receive()
     {
         clientS3 = tcpServer.available();
     }
-    if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(struct_message))
+    if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(IMUData))
     {
         clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
         Imu::addMessage(&incomingData);

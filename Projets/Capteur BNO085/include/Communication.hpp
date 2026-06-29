@@ -10,5 +10,5 @@ public:
     
     // Public methods
     static void setup(bool networkHP);
-    static bool send(struct_message *incomingData);
+    static bool send(IMUData *incomingData);
 };

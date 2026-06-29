@@ -4,7 +4,7 @@
 #include "EulerAngles.hpp"
 #include <Adafruit_BNO08x.h>
 
-struct_message Imu::data[MAX_IMU_DATA];
+IMUData Imu::data[MAX_IMU_DATA];
 
 void Imu::setup()
 {
@@ -16,26 +16,26 @@ void Imu::setup()
     Communication::setup(Config::NetworkHP());
 }
 
-struct_message *Imu::getSavedMessage(uint8_t sensorID)
+IMUData *Imu::getSavedMessage(uint8_t sensorID)
 {
     return getMessage(sensorID | 0x80);
 }
 
 bool Imu::saveMessage(uint8_t sensorId)
 {
-    struct_message *m = getMessage(sensorId);
+    IMUData *m = getMessage(sensorId);
     if (m != nullptr)
     {
-        struct_message *s = getMessage(sensorId | 0x80);
+        IMUData *s = getMessage(sensorId | 0x80);
         if (s != nullptr)
         {
-            memcpy(s, m, sizeof(struct_message));
+            memcpy(s, m, sizeof(IMUData));
             return true;
         }
     }
     return false;
 }
-struct_message *Imu::getNewMessage()
+IMUData *Imu::getNewMessage()
 {
     for (int i = 0; i < MAX_IMU_DATA; i++)
         if (data[i].treated == false && data[i].sensorId != NO_SENSOR_ID)
@@ -45,7 +45,7 @@ struct_message *Imu::getNewMessage()
     return nullptr;
 }
 
-struct_message *Imu::getMessage(uint8_t sensorID)
+IMUData *Imu::getMessage(uint8_t sensorID)
 {
     for (int i = 0; i < MAX_IMU_DATA; i++)
         if (data[i].sensorId == sensorID)
@@ -61,7 +61,7 @@ struct_message *Imu::getMessage(uint8_t sensorID)
 
 EulerAngles Imu::getEulerAngles(uint8_t sensorId)
 {
-    struct_message *m = getMessage(sensorId);
+    IMUData *m = getMessage(sensorId);
     if (m == nullptr)
         return EulerAngles(0, 0, 0);
     EulerAngles e = EulerAngles::getEulerFromQuaternion(m->q_i, m->q_j, m->q_k, m->q_real);
@@ -82,12 +82,12 @@ EulerAngles Imu::getEulerAngles(uint8_t sensorId)
     return e;
 }
 
-bool Imu::addMessage(struct_message *m)
+bool Imu::addMessage(IMUData *m)
 {
-    struct_message *dest = getMessage(m->sensorId);
+    IMUData *dest = getMessage(m->sensorId);
     if (dest == nullptr)
         return false;
-    memcpy(dest, m, sizeof(struct_message));
+    memcpy(dest, m, sizeof(IMUData));
     dest->treated = false;
     return true;
 }
@@ -105,7 +105,7 @@ void Imu::loop()
 
 // // 📦 LA STRUCTURE (Doit être STRICTEMENT IDENTIQUE à celle de l'émetteur)
 // // Instance locale pour stocker les données reçues
-// struct_message incomingData;
+// IMUData incomingData;
 
 // // 📥 FONCTION DE RAPPEL (Callback) : Exécutée automatiquement à la réception d'un paquet
 // void OnDataRecv(const uint8_t *mac, const uint8_t *incomingDataRaw, int len)

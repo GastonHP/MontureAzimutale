@@ -20,9 +20,9 @@ volatile bool bnoDataReady = false;
 const uint8_t NO_SENSOR_ID = -1;
 const uint8_t STILL_ALIVE = -2;
 
-struct_message data[MAX_IMU_DATA];
+IMUData data[MAX_IMU_DATA];
 
-struct_message imuData;
+IMUData imuData;
 
 // esp_now_peer_info_t peerInfo;
 
@@ -30,7 +30,7 @@ const float SEUIL_MOUVEMENT = 0.0005;
 
 void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
 
-struct_message *getMessage(uint8_t sensorID)
+IMUData *getMessage(uint8_t sensorID)
 {
     // Serial.println("getMessage sensorId=" + String(sensorID, DEC));
     for (int i = 0; i < MAX_IMU_DATA; i++)
@@ -45,14 +45,14 @@ struct_message *getMessage(uint8_t sensorID)
     return nullptr;
 }
 
-bool addMessage(struct_message *m)
+bool addMessage(IMUData *m)
 {
-    struct_message *dest = getMessage(m->sensorId);
+    IMUData *dest = getMessage(m->sensorId);
     if (dest == nullptr)
         dest = getMessage(NO_SENSOR_ID);
     if (dest == nullptr)
         return false;
-    memcpy(dest, m, sizeof(struct_message));
+    memcpy(dest, m, sizeof(IMUData));
     dest->treated = false;
     dest->sent = false;
     return true;
@@ -111,7 +111,7 @@ void setup()
 unsigned long lastSendTime = 0;
 unsigned long lastStillAlive = 0;
 
-int testAndSend(struct_message *m)
+int testAndSend(IMUData *m)
 {
     if (!m->sent)
     {
@@ -133,7 +133,7 @@ int sendIMUData()
     int n = 0;
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        struct_message *m = &data[i];
+        IMUData *m = &data[i];
         Serial.println(String(i, DEC) + ":" + String(m->sensorId, DEC) + ":" + m->sent);
         if (!m->sent && m->sensorId >= 0)
         {
@@ -157,7 +157,7 @@ String getJson()
     json += "\"test\": { \"texte\": \"zsxedcrfv\" },";
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        struct_message *m = &data[i];
+        IMUData *m = &data[i];
         String prefix = "";
         switch (m->sensorId)
         {
@@ -237,7 +237,7 @@ void loop()
     if (millis() - lastStillAlive >= 10000) // Envoi toutes les 50 ms
     {
         lastStillAlive = millis();
-        struct_message *m = getMessage(STILL_ALIVE);
+        IMUData *m = getMessage(STILL_ALIVE);
         if (m != nullptr)
         {
             addMessage(m);
@@ -253,7 +253,7 @@ void loop()
             Log::addLog("bno getEvent", true);
             // On vérifie le type reçu du BNO085
             // Serial.print("*" + String(sensorValue.sensorId, DEC));
-            struct_message *m = getMessage(sensorValue.sensorId);
+            IMUData *m = getMessage(sensorValue.sensorId);
             if (m != nullptr)
             {
                 // Serial.print("@");

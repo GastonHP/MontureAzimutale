@@ -4,11 +4,11 @@
 class Communication
 {
 private:
-    static struct_message incomingData;
+    static IMUData incomingData;
 
 public:
     // Public methods
     static void setup(bool SSIDFound);
     static bool receive();
-    static struct_message *getData();
+    static IMUData *getData();
 };

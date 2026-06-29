@@ -13,14 +13,14 @@ public:
     // Public methods
     static void setup();
     static void loop();
-    static bool addMessage(struct_message *m);
-    static struct_message *getMessage(uint8_t sensorId);
+    static bool addMessage(IMUData *m);
+    static IMUData *getMessage(uint8_t sensorId);
     static bool saveMessage(uint8_t sensorId);
-    static struct_message *getSavedMessage(uint8_t sensorId) ;
-    static struct_message *getNewMessage();
+    static IMUData *getSavedMessage(uint8_t sensorId) ;
+    static IMUData *getNewMessage();
     static EulerAngles getEulerAngles(uint8_t sensorId);
 
 private:
     // Private members
-    static struct_message data[];
+    static IMUData data[];
 };
