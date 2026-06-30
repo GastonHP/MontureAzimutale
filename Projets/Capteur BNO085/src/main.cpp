@@ -278,7 +278,7 @@ void loop()
                         m->accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // Convertir en degrés
                         m->precision = sensorValue.status & 0x03;                       // Précision du capteur (0-3)
                         m->imu_timestamp = sensorValue.timestamp;                       // Timestamp du BNO085
-                        m->esp_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
+                        m->cap_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
                         m->q_real = current_real;
@@ -303,7 +303,7 @@ void loop()
                         m->accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // Convertir en degrés
                         m->precision = sensorValue.status & 0x03;                         // Précision du capteur (0-3)
                         m->imu_timestamp = sensorValue.timestamp;                         // Timestamp du BNO085
-                        m->esp_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
+                        m->cap_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
                         m->q_real = current_real;
@@ -329,7 +329,7 @@ void loop()
                         m->accuracy = -1;
                         m->precision = sensorValue.status & 0x03; // Précision du capteur (0-3)
                         m->imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
-                        m->esp_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
+                        m->cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
                         m->q_real = current_real;

@@ -133,9 +133,11 @@ void Telescope::calibrateAZ()
     // Par exemple, vous pourriez faire tourner le moteur AZ d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe AZ
     // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe AZ si nécessaire
     // calibrer AZ
-    Imu::saveMessage(SH2_ARVR_STABILIZED_RV);
-    Imu::saveMessage(SH2_ROTATION_VECTOR);
-    Imu::saveMessage(SH2_GAME_ROTATION_VECTOR);
+    Imu::saveIMUDataBefore(SH2_ARVR_STABILIZED_RV);
+    Imu::saveIMUDataBefore(SH2_ROTATION_VECTOR);
+    Imu::saveIMUDataBefore(SH2_GAME_ROTATION_VECTOR);
+    Imu::setTreated(true);
+    
     Telescope::steps(stepsForCalibration, 0); // Test de mouvement sur l'axe AZ
     while (isMoving())
         delay(100);
@@ -230,7 +232,7 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
-    IMUData *m = Imu::getNewMessage();
+    IMUData *m = Imu::hasNewIMUData();
     if (m != nullptr)
     {
         Telescope::log("Msg : sensorId=" + String(m->sensorId, DEC));
@@ -391,7 +393,7 @@ void Telescope::setAutomatique(bool autoMode) { automatique = autoMode; }
 //     //                 sensorValue.un.arvrStabilizedRV.real);
 //     //             // À ajouter dans votre fonction afficherInterface
 //     //             ARVR_STABILIZED_RV_anglesActuels.bno_timestamp = sensorValue.timestamp;
-//     //             ARVR_STABILIZED_RV_anglesActuels.esp_timestamp = millis();
+//     //             ARVR_STABILIZED_RV_anglesActuels.cap_timestamp = millis();
 //     //             ARVR_STABILIZED_RV_anglesActuels.sensorId = sensorValue.sensorId;
 //     //             ARVR_STABILIZED_RV_anglesActuels.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // précision en degrés
 //     //             ARVR_STABILIZED_RV_anglesActuels.precision = sensorValue.status & 0x03;
@@ -404,7 +406,7 @@ void Telescope::setAutomatique(bool autoMode) { automatique = autoMode; }
 //     //                 sensorValue.un.rotationVector.k,
 //     //                 sensorValue.un.rotationVector.real);
 //     //             ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-//     //             ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+//     //             ROTATION_VECTOR_anglesActuels.cap_timestamp = millis();
 //     //             ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
 //     //             ROTATION_VECTOR_anglesActuels.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // précision en degrés
 //     //             ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
@@ -417,7 +419,7 @@ void Telescope::setAutomatique(bool autoMode) { automatique = autoMode; }
 //     //                 sensorValue.un.gameRotationVector.k,
 //     //                 sensorValue.un.gameRotationVector.real);
 //     //             GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp = sensorValue.timestamp;
-//     //             GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp = millis();
+//     //             GAME_ROTATION_VECTOR_anglesActuels.cap_timestamp = millis();
 //     //             GAME_ROTATION_VECTOR_anglesActuels.sensorId = sensorValue.sensorId;
 //     //             GAME_ROTATION_VECTOR_anglesActuels.accuracy = -1;
 //     //             GAME_ROTATION_VECTOR_anglesActuels.precision = sensorValue.status & 0x03;
@@ -513,7 +515,7 @@ void Telescope::log(String s)
     Log::addLog(s);
 }
 static uint64_t startTime = 0;
-String bnoTimestampToString(uint64_t ts_us, uint64_t esp_timestamp_us)
+String bnoTimestampToString(uint64_t ts_us, uint64_t cap_timestamp_us)
 {
     if (startTime == 0)
     {
@@ -522,7 +524,7 @@ String bnoTimestampToString(uint64_t ts_us, uint64_t esp_timestamp_us)
     float seconds = (ts_us - startTime) / 1e6; // µs → secondes
 
     char buf[40];
-    snprintf(buf, sizeof(buf), "%d µs /%d ms", ts_us, esp_timestamp_us);
+    snprintf(buf, sizeof(buf), "%d µs /%d ms", ts_us, cap_timestamp_us);
 
     return String(buf);
 }
@@ -537,7 +539,7 @@ String Telescope::getJson()
     json += "\"arvr_roll\":" + String(ARVR_STABILIZED_RV_anglesActuels.roll, 2) + ",";
     json += "\"arvr_accuracy\":" + String(ARVR_STABILIZED_RV_anglesActuels.accuracy, 2) + ",";
     json += "\"arvr_precision\":" + String(ARVR_STABILIZED_RV_anglesActuels.precision) + ",";
-    json += "\"arvr_timestamp\":\"" + bnoTimestampToString(ARVR_STABILIZED_RV_anglesActuels.bno_timestamp, ARVR_STABILIZED_RV_anglesActuels.esp_timestamp) + "\",";
+    json += "\"arvr_timestamp\":\"" + bnoTimestampToString(ARVR_STABILIZED_RV_anglesActuels.imu_timestamp, ARVR_STABILIZED_RV_anglesActuels.cap_timestamp) + "\",";
     json += "\"arvr_deltaALT\":\"" + Telescope::ARVR_STABILIZED_RV_calibration.deltaALT().toString() + "\",";
     json += "\"arvr_deltaAZ\":\"" + Telescope::ARVR_STABILIZED_RV_calibration.deltaAZ().toString() + "\",";
 
@@ -546,7 +548,7 @@ String Telescope::getJson()
     json += "\"rotation_vector_roll\":" + String(ROTATION_VECTOR_anglesActuels.roll, 2) + ",";
     json += "\"rotation_vector_accuracy\":" + String(ROTATION_VECTOR_anglesActuels.accuracy, 2) + ",";
     json += "\"rotation_vector_precision\":" + String(ROTATION_VECTOR_anglesActuels.precision) + ",";
-    json += "\"rotation_vector_timestamp\":\"" + bnoTimestampToString(ROTATION_VECTOR_anglesActuels.bno_timestamp, ROTATION_VECTOR_anglesActuels.esp_timestamp) + "\",";
+    json += "\"rotation_vector_timestamp\":\"" + bnoTimestampToString(ROTATION_VECTOR_anglesActuels.imu_timestamp, ROTATION_VECTOR_anglesActuels.cap_timestamp) + "\",";
     json += "\"rotation_vector_deltaALT\":\"" + Telescope::ROTATION_VECTOR_calibration.deltaALT().toString() + "\",";
     json += "\"rotation_vector_deltaAZ\":\"" + Telescope::ROTATION_VECTOR_calibration.deltaAZ().toString() + "\",";
 
@@ -555,7 +557,7 @@ String Telescope::getJson()
     json += "\"game_rotation_vector_roll\":" + String(GAME_ROTATION_VECTOR_anglesActuels.roll, 2) + ",";
     json += "\"game_rotation_vector_accuracy\":" + String(GAME_ROTATION_VECTOR_anglesActuels.accuracy, 2) + ",";
     json += "\"game_rotation_vector_precision\":" + String(GAME_ROTATION_VECTOR_anglesActuels.precision) + ",";
-    json += "\"game_rotation_vector_timestamp\":\"" + bnoTimestampToString(GAME_ROTATION_VECTOR_anglesActuels.bno_timestamp, GAME_ROTATION_VECTOR_anglesActuels.esp_timestamp) + "\",";
+    json += "\"game_rotation_vector_timestamp\":\"" + bnoTimestampToString(GAME_ROTATION_VECTOR_anglesActuels.imu_timestamp, GAME_ROTATION_VECTOR_anglesActuels.cap_timestamp) + "\",";
     json += "\"game_rotation_vector_deltaALT\":\"" + Telescope::GAME_ROTATION_VECTOR_calibration.deltaALT().toString() + "\",";
     json += "\"game_rotation_vector_deltaAZ\":\"" + Telescope::GAME_ROTATION_VECTOR_calibration.deltaAZ().toString() + "\",";
 

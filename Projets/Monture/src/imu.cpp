@@ -16,36 +16,17 @@ void Imu::setup()
     Communication::setup(Config::NetworkHP());
 }
 
-IMUData *Imu::getSavedMessage(uint8_t sensorID)
+bool Imu::saveIMUData(IMUData *m)
 {
-    return getMessage(sensorID | 0x80);
+    IMUData *dest = getIMUData(m->sensorId);
+    if (dest == nullptr)
+        return false;
+    memcpy(dest, m, sizeof(IMUData));
+    dest->treated = false;
+    return true;
 }
 
-bool Imu::saveMessage(uint8_t sensorId)
-{
-    IMUData *m = getMessage(sensorId);
-    if (m != nullptr)
-    {
-        IMUData *s = getMessage(sensorId | 0x80);
-        if (s != nullptr)
-        {
-            memcpy(s, m, sizeof(IMUData));
-            return true;
-        }
-    }
-    return false;
-}
-IMUData *Imu::getNewMessage()
-{
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        if (data[i].treated == false && data[i].sensorId != NO_SENSOR_ID)
-        {
-            return &data[i];
-        }
-    return nullptr;
-}
-
-IMUData *Imu::getMessage(uint8_t sensorID)
+IMUData *Imu::getIMUData(uint8_t sensorID)
 {
     for (int i = 0; i < MAX_IMU_DATA; i++)
         if (data[i].sensorId == sensorID)
@@ -59,19 +40,66 @@ IMUData *Imu::getMessage(uint8_t sensorID)
     return nullptr;
 }
 
+bool Imu::saveIMUDataAfter(uint8_t sensorId)
+{
+    IMUData *m = getIMUData(sensorId);
+    if (m != nullptr)
+    {
+        IMUData *s = getIMUData(sensorId | 0xC0);
+        if (s != nullptr)
+        {
+            memcpy(s, m, sizeof(IMUData));
+            s->sensorId = sensorId | 0xc0;
+            return true;
+        }
+    }
+    return false;
+}
+
+IMUData *Imu::getIMUDataAfter(uint8_t sensorID)
+{
+    return getIMUData(sensorID | 0xC0);
+}
+
+bool Imu::saveIMUDataBefore(uint8_t sensorId)
+{
+    IMUData *m = getIMUData(sensorId);
+    if (m != nullptr)
+    {
+        IMUData *s = getIMUData(sensorId | 0x80);
+        if (s != nullptr)
+        {
+            memcpy(s, m, sizeof(IMUData));
+            s->sensorId = sensorId | 0x80;
+            return true;
+        }
+    }
+    return false;
+}
+
+IMUData *Imu::getIMUDataBefore(uint8_t sensorID)
+{
+    return getIMUData(sensorID | 0x80);
+}
+
 EulerAngles Imu::getEulerAngles(uint8_t sensorId)
 {
-    IMUData *m = getMessage(sensorId);
+    IMUData *m = getIMUData(sensorId);
+    return Imu::getEulerAngles(m);
+}
+
+EulerAngles Imu::getEulerAngles(IMUData *m)
+{
     if (m == nullptr)
         return EulerAngles(0, 0, 0);
     EulerAngles e = EulerAngles::getEulerFromQuaternion(m->q_i, m->q_j, m->q_k, m->q_real);
     // À ajouter dans votre fonction afficherInterface
-    e.bno_timestamp = m->imu_timestamp;
-    e.esp_timestamp = m->esp_timestamp;
+    e.imu_timestamp = m->imu_timestamp;
+    e.cap_timestamp = m->cap_timestamp;
     e.sensorId = m->sensorId;
     e.precision = m->precision;
     e.accuracy = m->accuracy;
-    switch (sensorId)
+    switch (m->sensorId & 0x3f)
     {
     case SH2_ARVR_STABILIZED_RV:
     case SH2_ROTATION_VECTOR:
@@ -82,14 +110,33 @@ EulerAngles Imu::getEulerAngles(uint8_t sensorId)
     return e;
 }
 
-bool Imu::addMessage(IMUData *m)
+IMUData *Imu::hasNewIMUData(uint8_t sensorId)
 {
-    IMUData *dest = getMessage(m->sensorId);
-    if (dest == nullptr)
-        return false;
-    memcpy(dest, m, sizeof(IMUData));
-    dest->treated = false;
-    return true;
+    for (int i = 0; i < MAX_IMU_DATA; i++)
+        if (data[i].treated == false && data[i].sensorId == sensorId && data[i].sensorId <= SH2_MAX_SENSOR_ID)
+            return &data[i];
+    return nullptr;
+}
+
+IMUData *Imu::hasNewIMUData()
+{
+    for (int i = 0; i < MAX_IMU_DATA; i++)
+        if (data[i].treated == false && data[i].sensorId != NO_SENSOR_ID && data[i].sensorId <= SH2_MAX_SENSOR_ID)
+            return &data[i];
+    return nullptr;
+}
+
+void Imu::setTreated(uint8_t sensorId, bool treated)
+{
+    IMUData *m = getIMUData(sensorId);
+    if (m != nullptr)
+        m->treated = treated;
+}
+
+void Imu::setTreated(bool treated)
+{
+    for (int i = 0; i < MAX_IMU_DATA; i++)
+        data[i].treated = treated;
 }
 
 void Imu::loop()

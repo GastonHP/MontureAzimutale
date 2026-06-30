@@ -14,19 +14,17 @@
 
 typedef struct IMUData
 {
-    // char messageText[32];
-    uint8_t sensorId;
-    float accuracy;
-    uint8_t precision;
-
     float q_real;
     float q_i;
     float q_j;
     float q_k;
 
     uint64_t imu_timestamp; // Timestamp du capteur en microsecondes
-    uint64_t esp_timestamp; // Timestamp de l'ESP en millisecondes
-
+    uint64_t cap_timestamp; // Timestamp de l'ESP capteur en millisecondes
+    uint64_t mon_timestamp; // Timestamp de la monture en millisecondes
+    uint8_t sensorId;
+    float accuracy;
+    uint8_t precision;
     bool sent = true; // Indique si le message a été envoyé avec succès
     bool treated = false;
 } IMUData;

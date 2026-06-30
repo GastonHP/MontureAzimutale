@@ -45,8 +45,9 @@ bool Communication::receive()
     if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(IMUData))
     {
         clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
-        Imu::addMessage(&incomingData);
-        //Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
+        incomingData.mon_timestamp = millis();
+        Imu::saveIMUData(&incomingData);
+        // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
         return true;
     }
     return false;
