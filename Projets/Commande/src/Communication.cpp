@@ -43,6 +43,7 @@ bool Communication::receive()
     {
         clientS3 = tcpServer.available();
     }
+
     if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(IMUData))
     {
         clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
