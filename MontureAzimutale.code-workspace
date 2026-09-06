@@ -9,8 +9,8 @@
 			"path": "Projets/Capteurs"
 		},
 		{
-			"name": "Monture",
-			"path": "Projets/Monture"
+			"name": "Commande",
+			"path": "Projets/Commande"
 		},
 		{
 			"name": "test bno085",
@@ -21,15 +21,8 @@
 			"path": "../lib"
 		},
 		{
-			"name": "pio_test_bno85",
-			"path": "D:/tmp/pio/pio_test_bno85"
-		},
-		{
-			"name": "pio_MontureAzimutale",
-			"path": "D:/tmp/pio/pio_MontureAzimutale"
-		},
-		{
-			"path": "D:/tmp/pio/pio_capteurs"
+			"name": "pio_monture",
+			"path": "D:/tmp/pio/pio_monture"
 		}
 	],
 	"settings": {
