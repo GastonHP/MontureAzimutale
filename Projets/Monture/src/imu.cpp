@@ -1,148 +1,81 @@
 #include "imu.hpp"
 #include "config.hpp"
+#include "Log.hpp"
 #include "Communication.hpp"
 #include "EulerAngles.hpp"
 #include <Adafruit_BNO08x.h>
 
-IMUData Imu::data[MAX_IMU_DATA];
+IMUData Imu::lastdata;
+Capteur Imu::rotationCapteur = Capteur(Capteur::TYPE::ROTATION);
+Capteur Imu::ARVRCapteur = Capteur(Capteur::TYPE::ARVR);
+Capteur Imu::gameRotationCapteur = Capteur(Capteur::TYPE::GAME_ROTATION);
 
 void Imu::setup()
 {
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-    {
-        data[i].sensorId = NO_SENSOR_ID;
-        data[i].treated = true;
-    }
     Communication::setup(Config::NetworkHP());
 }
 
 bool Imu::saveIMUData(IMUData *m)
 {
-    IMUData *dest = getIMUData(m->sensorId);
-    if (dest == nullptr)
-        return false;
-    memcpy(dest, m, sizeof(IMUData));
-    dest->treated = false;
-    return true;
-}
-
-IMUData *Imu::getIMUData(uint8_t sensorID)
-{
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        if (data[i].sensorId == sensorID)
-            return &data[i];
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        if (data[i].sensorId == NO_SENSOR_ID)
-        {
-            data[i].sensorId = sensorID;
-            return &data[i];
-        }
-    return nullptr;
-}
-
-bool Imu::saveIMUDataAfter(uint8_t sensorId)
-{
-    IMUData *m = getIMUData(sensorId);
-    if (m != nullptr)
+    memcpy(&lastdata, m, sizeof(IMUData));
+    lastdata.treated = false;
+    switch (m->sensorId)
     {
-        IMUData *s = getIMUData(sensorId | 0xC0);
-        if (s != nullptr)
-        {
-            memcpy(s, m, sizeof(IMUData));
-            s->sensorId = sensorId | 0xc0;
-            return true;
-        }
-    }
-    return false;
-}
-
-IMUData *Imu::getIMUDataAfter(uint8_t sensorID)
-{
-    return getIMUData(sensorID | 0xC0);
-}
-
-bool Imu::saveIMUDataBefore(uint8_t sensorId)
-{
-    IMUData *m = getIMUData(sensorId);
-    if (m != nullptr)
-    {
-        IMUData *s = getIMUData(sensorId | 0x80);
-        if (s != nullptr)
-        {
-            memcpy(s, m, sizeof(IMUData));
-            s->sensorId = sensorId | 0x80;
-            return true;
-        }
-    }
-    return false;
-}
-
-IMUData *Imu::getIMUDataBefore(uint8_t sensorID)
-{
-    return getIMUData(sensorID | 0x80);
-}
-
-EulerAngles Imu::getEulerAngles(uint8_t sensorId)
-{
-    IMUData *m = getIMUData(sensorId);
-    return Imu::getEulerAngles(m);
-}
-
-EulerAngles Imu::getEulerAngles(IMUData *m)
-{
-    if (m == nullptr)
-        return EulerAngles(0, 0, 0);
-    EulerAngles e = EulerAngles::getEulerFromQuaternion(m->q_i, m->q_j, m->q_k, m->q_real);
-    // À ajouter dans votre fonction afficherInterface
-    e.imu_timestamp = m->imu_timestamp;
-    e.cap_timestamp = m->cap_timestamp;
-    e.sensorId = m->sensorId;
-    e.precision = m->precision;
-    e.accuracy = m->accuracy;
-    switch (m->sensorId & 0x3f)
-    {
-    case SH2_ARVR_STABILIZED_RV:
-    case SH2_ROTATION_VECTOR:
-    case SH2_GAME_ROTATION_VECTOR:
-        e.valid = true;
+    case Capteur::TYPE::ARVR:
+        return ARVRCapteur.addImuData(m);
+        break;
+    case Capteur::TYPE::ROTATION:
+        return rotationCapteur.addImuData(m);
+        break;
+    case Capteur::TYPE::GAME_ROTATION:
+        return gameRotationCapteur.addImuData(m);
         break;
     }
-    return e;
+    return false;
 }
 
-IMUData *Imu::hasNewIMUData(uint8_t sensorId)
+IMUData *Imu::hasNewData()
 {
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        if (data[i].treated == false && data[i].sensorId == sensorId && data[i].sensorId <= SH2_MAX_SENSOR_ID)
-            return &data[i];
+    if (lastdata.treated == false)
+    {
+        // lastdata.treated=true;
+        return &lastdata;
+    }
     return nullptr;
 }
 
-IMUData *Imu::hasNewIMUData()
+String Imu::IMUDataToString(IMUData *data)
 {
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        if (data[i].treated == false && data[i].sensorId != NO_SENSOR_ID && data[i].sensorId <= SH2_MAX_SENSOR_ID)
-            return &data[i];
-    return nullptr;
+    String str = "IMUData: ";
+    str += "q_real=" + String(data->q_real, 4) + ", ";
+    str += "q_i=" + String(data->q_i, 4) + ", ";
+    str += "q_j=" + String(data->q_j, 4) + ", ";
+    str += "q_k=" + String(data->q_k, 4) + ", ";
+    str += "imu_timestamp=" + String(data->imu_timestamp) + ", ";
+    str += "cap_timestamp=" + String(data->cap_timestamp) + ", ";
+    str += "mon_timestamp=" + String(data->mon_timestamp) + ", ";
+    str += "sensorId=" + String(data->sensorId) + ", ";
+    str += "accuracy=" + String(data->accuracy, 4) + ", ";
+    str += "precision=" + String(data->precision) + ", ";
+    str += "sent=" + String(data->sent ? "true" : "false") + ", ";
+    str += "treated=" + String(data->treated ? "true" : "false");
+    return str;
 }
-
-void Imu::setTreated(uint8_t sensorId, bool treated)
-{
-    IMUData *m = getIMUData(sensorId);
-    if (m != nullptr)
-        m->treated = treated;
-}
-
-void Imu::setTreated(bool treated)
-{
-    for (int i = 0; i < MAX_IMU_DATA; i++)
-        data[i].treated = treated;
-}
-
+unsigned long lastLog = millis();
 void Imu::loop()
 {
     if (Communication::receive())
     {
+        lastLog = millis();
+        Log::addLog(Communication::error);
+    }
+    else
+    {
+        if (millis() - lastLog > 3000)
+        {
+            lastLog = millis();
+            Log::addLog(Communication::error);
+        }
     }
 }
 // #include <Arduino.h>

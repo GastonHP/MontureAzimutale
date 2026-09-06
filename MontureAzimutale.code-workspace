@@ -5,8 +5,8 @@
 			"path": "."
 		},
 		{
-			"name": "Capteur BNO085",
-			"path": "Projets/Capteur BNO085"
+			"name": "Capteurs",
+			"path": "Projets/Capteurs"
 		},
 		{
 			"name": "Monture",
@@ -29,8 +29,7 @@
 			"path": "D:/tmp/pio/pio_MontureAzimutale"
 		},
 		{
-			"name": "pio_Capteur_BNO085",
-			"path": "D:/tmp/pio/pio_Capteur_BNO085"
+			"path": "D:/tmp/pio/pio_capteurs"
 		}
 	],
 	"settings": {

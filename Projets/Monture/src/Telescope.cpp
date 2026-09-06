@@ -10,14 +10,6 @@
 #include <Wire.h>
 #include "imu.hpp"
 
-// #define BNO_PIN_SDA 8
-// #define BNO_PIN_SCL 9
-// #define BNO_PIN_INT 13
-// #define BNO_PIN_RST_UND -1 // 21
-// #define BNO_I2CADDR_DEFAULT 0x4B
-
-// sh2_SensorValue_t Telescope::sensorValue;
-
 // Instanciation globale
 // Azimut : Step 5, Dir 6 | Altitude : Step 7, Dir 15
 // M0=2, M1=42, M2=41 (partagés pour les deux drivers)
@@ -133,17 +125,13 @@ void Telescope::calibrateAZ()
     // Par exemple, vous pourriez faire tourner le moteur AZ d'une certaine quantité et mesurer la réponse du capteur pour calculer un coefficient de conversion spécifique à l'axe AZ
     // Cette fonction peut être appelée indépendamment pour recalibrer uniquement l'axe AZ si nécessaire
     // calibrer AZ
-    Imu::saveIMUDataBefore(SH2_ARVR_STABILIZED_RV);
-    Imu::saveIMUDataBefore(SH2_ROTATION_VECTOR);
-    Imu::saveIMUDataBefore(SH2_GAME_ROTATION_VECTOR);
-    Imu::setTreated(true);
-    
+
     Telescope::steps(stepsForCalibration, 0); // Test de mouvement sur l'axe AZ
     while (isMoving())
         delay(100);
     delay(Time2Wait); // Attendre que les vibrations se calment
 
-    //readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
+    // readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
     ARVR_STABILIZED_RV_calibration.finAZ = ARVR_STABILIZED_RV_anglesActuels.copie();
     ROTATION_VECTOR_calibration.finAZ = ROTATION_VECTOR_anglesActuels.copie();
     GAME_ROTATION_VECTOR_calibration.finAZ = GAME_ROTATION_VECTOR_anglesActuels.copie();
@@ -171,7 +159,7 @@ void Telescope::calibrateALT()
         delay(100);
     delay(Time2Wait); // Attendre que les vibrations se calment
 
-    //readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
+    // readAnglesFromSensor(true); // Forcer la lecture des angles pour s'assurer d'avoir des données fraîches après le mouvement
     ARVR_STABILIZED_RV_calibration.finALT = ARVR_STABILIZED_RV_anglesActuels.copie();
     ROTATION_VECTOR_calibration.finALT = ROTATION_VECTOR_anglesActuels.copie();
     GAME_ROTATION_VECTOR_calibration.finALT = GAME_ROTATION_VECTOR_anglesActuels.copie();
@@ -232,10 +220,10 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
-    IMUData *m = Imu::hasNewIMUData();
+    IMUData *m = Imu::hasNewData();
     if (m != nullptr)
     {
-        Telescope::log("Msg : sensorId=" + String(m->sensorId, DEC));
+        Telescope::log("Msg : 0x" +Imu::IMUDataToString(m));
         m->treated = true;
     }
     if (nbCommandes > 0)

@@ -6,6 +6,7 @@
 #include "EulerAngles.hpp"
 #include "MotorControl.hpp"
 #include "calibration.hpp"
+#include "Capteur.hpp"
 
 class Telescope
 {
@@ -77,6 +78,8 @@ private:
     static void calibrateAZ();
     static void calibrateALT();
     static void steps(long stepsAz, long stepsAlt);
+
+
 
     static int nbCommandes;
     static const int maxCommandes = 10;

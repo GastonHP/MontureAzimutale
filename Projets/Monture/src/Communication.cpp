@@ -5,6 +5,7 @@ static WiFiServer tcpServer(portTCP);
 static WiFiClient clientS3;
 
 IMUData Communication::incomingData;
+String Communication::error = "";
 
 // ... (Garde ta structure IMUData et ta variable incomingData)
 
@@ -45,10 +46,17 @@ bool Communication::receive()
     if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(IMUData))
     {
         clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
+        if (incomingData.version != protocolVersion)
+        {
+            Communication::error = "Version mismatch: expected " + String(protocolVersion) + ", got " + String(incomingData.version);
+            return false;
+        }
         incomingData.mon_timestamp = millis();
         Imu::saveIMUData(&incomingData);
+        Communication::error = "Data received successfully.";
         // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
         return true;
     }
+    Communication::error = "No data received or not enough data available.";
     return false;
 }

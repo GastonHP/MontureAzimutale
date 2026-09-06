@@ -11,4 +11,5 @@ public:
     static void setup(bool SSIDFound);
     static bool receive();
     static IMUData *getData();
+    static String error;
 };

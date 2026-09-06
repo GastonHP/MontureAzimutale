@@ -12,19 +12,26 @@
 // const char* ap_ssid       = "Telescope_Net";
 // const char* ap_password   = "12345678"; // 8 caractères min.
 
+#define protocolVersion 1
 typedef struct IMUData
 {
+    uint16_t version = protocolVersion;
+
+    uint8_t sensorId;
+    
     float q_real;
     float q_i;
     float q_j;
     float q_k;
 
+    float accuracy;
+    uint8_t precision;
+    
     uint64_t imu_timestamp; // Timestamp du capteur en microsecondes
     uint64_t cap_timestamp; // Timestamp de l'ESP capteur en millisecondes
     uint64_t mon_timestamp; // Timestamp de la monture en millisecondes
-    uint8_t sensorId;
-    float accuracy;
-    uint8_t precision;
+
+
     bool sent = true; // Indique si le message a été envoyé avec succès
     bool treated = false;
 } IMUData;
