@@ -4,12 +4,12 @@
 class Communication
 {
 private:
-    static IMUData incomingData;
+    static CapteursMessage incomingData;
 
 public:
     // Public methods
     static void setup(bool SSIDFound);
     static bool receive();
-    static IMUData *getData();
+    static CapteursMessage *getData();
     static String error;
 };

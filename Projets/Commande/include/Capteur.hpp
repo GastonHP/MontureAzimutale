@@ -17,10 +17,10 @@ public:
         GAME_ROTATION = SH2_GAME_ROTATION_VECTOR
     };
     Capteur(Capteur::TYPE t);
-    bool addImuData(IMUData *data);
+    bool addImuData(CapteursMessage *data);
 
 private:
     Capteur::TYPE typeImu;
-    IMUData data[MAX_IMU_DATA];
-    static bool areEqual(IMUData *a,IMUData *b);
+    CapteursMessage data[MAX_IMU_DATA];
+    static bool areEqual(CapteursMessage *a, CapteursMessage *b);
 };

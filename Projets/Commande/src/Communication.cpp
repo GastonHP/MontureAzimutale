@@ -1,15 +1,15 @@
 #include "Communication.hpp"
 #include "imu.hpp"
+#include "Log.hpp"
 
 static WiFiServer tcpServer(portTCP);
-static WiFiClient clientS3;
 
-IMUData Communication::incomingData;
+CapteursMessage Communication::incomingData;
 String Communication::error = "";
 
-// ... (Garde ta structure IMUData et ta variable incomingData)
+// ... (Garde ta structure CapteursMessage et ta variable incomingData)
 
-IMUData *Communication::getData() { return &incomingData; }
+CapteursMessage *Communication::getData() { return &incomingData; }
 
 void Communication::setup(bool SSIDFound = true)
 {
@@ -17,6 +17,7 @@ void Communication::setup(bool SSIDFound = true)
     {
         // 🏠 MODE MAISON
         Serial.print("\n🏠 Mode Maison activé ! IP du S3 : ");
+        Log::addLog("🏠 Mode Maison activé ! IP du S3 : " + WiFi.localIP().toString());
         Serial.println(WiFi.localIP());
     }
     else
@@ -39,25 +40,38 @@ void Communication::setup(bool SSIDFound = true)
 
 bool Communication::receive()
 {
-    if (!clientS3 || !clientS3.connected())
+    bool rv = false;
+    WiFiClient clientS3 = tcpServer.available();
+    if (!clientS3)
     {
-        clientS3 = tcpServer.available();
+        Communication::error = "No client connected.";
+        return rv;
+    }
+    Log::addLog("Client connected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
+    // Reste dans la boucle tant que le client est connecté et envoie des données
+    while (clientS3.connected())
+    {
+        if (clientS3.available())
+        {
+            clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
+            if (incomingData.version != protocolVersion)
+            {
+                Communication::error = "Version mismatch: expected " + String(protocolVersion) + ", got " + String(incomingData.version);
+            }
+            else
+            {
+                incomingData.mon_timestamp = millis();
+                Imu::saveIMUData(&incomingData);
+                Communication::error = "Data received successfully.";
+                // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
+                rv = true;
+            }
+        }
     }
 
-    if (clientS3 && clientS3.connected() && clientS3.available() >= sizeof(IMUData))
-    {
-        clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
-        if (incomingData.version != protocolVersion)
-        {
-            Communication::error = "Version mismatch: expected " + String(protocolVersion) + ", got " + String(incomingData.version);
-            return false;
-        }
-        incomingData.mon_timestamp = millis();
-        Imu::saveIMUData(&incomingData);
-        Communication::error = "Data received successfully.";
-        // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
-        return true;
-    }
-    Communication::error = "No data received or not enough data available.";
-    return false;
+    // Le client s'est déconnecté (ou a envoyé client.stop())
+    clientS3.stop(); // LIBÈRE LA SOCKET CÔTÉ SERVEUR
+    Serial.println("Socket libéré côté serveur");
+    Log::addLog("Client disconnected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
+    return rv;
 }

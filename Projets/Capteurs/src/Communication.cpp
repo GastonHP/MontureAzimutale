@@ -1,8 +1,9 @@
 #include "Communication.hpp"
+#include "Log.hpp"
 
 // Variables dynamiques qui changeront selon le lieu
+// IPAddress targetIP;
 String targetIP = "";
-WiFiClient clientCapteur;
 
 // ... (Garde ta structure IMUData et imuData)
 
@@ -12,8 +13,9 @@ void Communication::setup(bool networkHP = true)
     {
         // 🏠 À LA MAISON
         Serial.println("\n🏠 Connecté au Wi-Fi maison !");
+        Log::addLog("🏠 Connecté au Wi-Fi maison ! IP du S3 : " + WiFi.localIP().toString());
         // ⚠️ Remplplace ici par l'IP que ton S3 affiche quand il est connecté à ta box !
-        targetIP = "192.168.0.228"; // ou "192.168.0.227"
+        targetIP = "192.168.0.228";
     }
     else
     {
@@ -35,26 +37,26 @@ void Communication::setup(bool networkHP = true)
     }
 }
 unsigned long nextTime = 0;
-bool Communication::send(IMUData *incomingData)
+bool Communication::send(CapteursMessage *incomingData)
 {
-    // Le reste du code du loop() TCP précédent reste EXACTEMENT le même !
-    if (!clientCapteur.connected() && millis() < nextTime)
-        return false;
-    nextTime = millis() + 10000;
-    if (!clientCapteur.connected())
-    {
-        if (clientCapteur.connect(targetIP.c_str(), portTCP))
-        {
-            Serial.println("🤝 Connecté au S3 !");
-        }
-        else
-        {
-            Serial.println("❌ NON Connecté au S3 !");
-            return false;
-        }
-    }
+    WiFiClient clientCapteur;
+    Log::addLog("communication::send()");
 
-    clientCapteur.write((uint8_t *)incomingData, sizeof(IMUData));
+    if (millis() < nextTime)
+        return false;
+    nextTime = millis() + 1000;
+
+    if (!clientCapteur.connect(targetIP.c_str(), portTCP))
+    {
+        Serial.println("❌ NON Connecté au S3 !");
+        Log::addLog("❌ NON Connecté au S3 !");
+        return false;
+    }
+    Serial.println("🤝 Connecté au S3 !");
+    Log::addLog("🤝 Connecté au S3 !");
+    clientCapteur.write((uint8_t *)incomingData, sizeof(CapteursMessage));
+    Log::addLog("Envoi des données à " + targetIP + " : r=" + String(incomingData->q_real) + " i=" + String(incomingData->q_i) + " j=" + String(incomingData->q_j) + " k=" + String(incomingData->q_k));
     clientCapteur.flush();
+    clientCapteur.stop();
     return true;
 }

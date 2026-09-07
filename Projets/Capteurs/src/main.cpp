@@ -20,9 +20,9 @@ volatile bool bnoDataReady = false;
 const uint8_t NO_SENSOR_ID = -1;
 const uint8_t STILL_ALIVE = -2;
 
-IMUData data[MAX_IMU_DATA];
+CapteursMessage data[MAX_IMU_DATA];
 
-IMUData imuData;
+CapteursMessage imuData;
 
 // esp_now_peer_info_t peerInfo;
 
@@ -30,7 +30,7 @@ const float SEUIL_MOUVEMENT = 0.0005;
 
 void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
 
-IMUData *getMessage(uint8_t sensorID)
+CapteursMessage *getMessage(uint8_t sensorID)
 {
     // Serial.println("getMessage sensorId=" + String(sensorID, DEC));
     for (int i = 0; i < MAX_IMU_DATA; i++)
@@ -45,14 +45,14 @@ IMUData *getMessage(uint8_t sensorID)
     return nullptr;
 }
 
-bool addMessage(IMUData *m)
+bool addMessage(CapteursMessage *m)
 {
-    IMUData *dest = getMessage(m->sensorId);
+    CapteursMessage *dest = getMessage(m->sensorId);
     if (dest == nullptr)
         dest = getMessage(NO_SENSOR_ID);
     if (dest == nullptr)
         return false;
-    memcpy(dest, m, sizeof(IMUData));
+    memcpy(dest, m, sizeof(CapteursMessage));
     dest->treated = false;
     dest->sent = false;
     return true;
@@ -111,7 +111,7 @@ void setup()
 unsigned long lastSendTime = 0;
 unsigned long lastStillAlive = 0;
 
-int testAndSend(IMUData *m)
+int testAndSend(CapteursMessage *m)
 {
     if (!m->sent)
     {
@@ -119,6 +119,7 @@ int testAndSend(IMUData *m)
         // esp_now_send(s3Address228, (uint8_t *)&m, sizeof(m));
         Communication::send(m);
         // Serial.printf("%d:espTS=%d:imuTS=%d:Envoi réussi de [%s] |", millis(), m->esp_timestamp, m->imu_timestamp, m->messageText);
+        Log::addLog("Envoi réussi de [" + String(m->sensorId, DEC) + "] | r=" + String(m->q_real) + " i=" + String(m->q_i) + " j=" + String(m->q_j) + " k=" + String(m->q_k));
         Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
         m->sent = true;
         return 1;
@@ -133,7 +134,7 @@ int sendIMUData()
     int n = 0;
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        IMUData *m = &data[i];
+        CapteursMessage *m = &data[i];
         Serial.println(String(i, DEC) + ":" + String(m->sensorId, DEC) + ":" + m->sent);
         if (!m->sent && m->sensorId >= 0)
         {
@@ -157,7 +158,7 @@ String getJson()
     json += "\"test\": { \"texte\": \"zsxedcrfv\" },";
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        IMUData *m = &data[i];
+        CapteursMessage *m = &data[i];
         String prefix = "";
         switch (m->sensorId)
         {
@@ -237,7 +238,7 @@ void loop()
     if (millis() - lastStillAlive >= 10000) // Envoi toutes les 50 ms
     {
         lastStillAlive = millis();
-        IMUData *m = getMessage(STILL_ALIVE);
+        CapteursMessage *m = getMessage(STILL_ALIVE);
         if (m != nullptr)
         {
             addMessage(m);
@@ -250,10 +251,10 @@ void loop()
 
         while (bno.getSensorEvent(&sensorValue))
         {
-            Log::addLog("bno getEvent", true);
+            //Log::addLog("bno getEvent", true);
             // On vérifie le type reçu du BNO085
             // Serial.print("*" + String(sensorValue.sensorId, DEC));
-            IMUData *m = getMessage(sensorValue.sensorId);
+            CapteursMessage *m = getMessage(sensorValue.sensorId);
             if (m != nullptr)
             {
                 // Serial.print("@");

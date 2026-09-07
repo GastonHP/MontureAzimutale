@@ -220,10 +220,10 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
-    IMUData *m = Imu::hasNewData();
+    CapteursMessage *m = Imu::hasNewData();
     if (m != nullptr)
     {
-        Telescope::log("Msg : 0x" +Imu::IMUDataToString(m));
+        Telescope::log(Imu::IMUDataToString(m));
         m->treated = true;
     }
     if (nbCommandes > 0)

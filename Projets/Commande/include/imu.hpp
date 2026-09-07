@@ -13,15 +13,15 @@ public:
     // Public methods
     static void setup();
     static void loop();
-    static bool saveIMUData(IMUData *m);
-    static IMUData *hasNewData();
+    static bool saveIMUData(CapteursMessage *m);
+    static CapteursMessage *hasNewData();
 
     static Capteur rotationCapteur;
     static Capteur ARVRCapteur;
     static Capteur gameRotationCapteur;
-    static String IMUDataToString(IMUData *data);
+    static String IMUDataToString(CapteursMessage *data);
 
 private:
     // Private members
-    static IMUData lastdata;
+    static CapteursMessage lastdata;
 };
