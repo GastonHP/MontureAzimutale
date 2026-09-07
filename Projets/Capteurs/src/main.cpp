@@ -16,13 +16,13 @@ Adafruit_BNO08x bno;
 sh2_SensorValue_t sensorValue;
 volatile bool bnoDataReady = false;
 
-#define MAX_IMU_DATA 4
+#define MAX_CAPTEURS_DATA 4
 const uint8_t NO_SENSOR_ID = -1;
 const uint8_t STILL_ALIVE = -2;
 
-CapteursMessage data[MAX_IMU_DATA];
+CapteursMessage data[MAX_CAPTEURS_DATA];
 
-CapteursMessage imuData;
+CapteursMessage CAPTEURSData;
 
 // esp_now_peer_info_t peerInfo;
 
@@ -33,10 +33,10 @@ void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
 CapteursMessage *getMessage(uint8_t sensorID)
 {
     // Serial.println("getMessage sensorId=" + String(sensorID, DEC));
-    for (int i = 0; i < MAX_IMU_DATA; i++)
+    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
         if (data[i].sensorId == sensorID)
             return &data[i];
-    for (int i = 0; i < MAX_IMU_DATA; i++)
+    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
         if (data[i].sensorId == NO_SENSOR_ID)
         {
             data[i].sensorId = sensorID;
@@ -71,7 +71,7 @@ void setup()
     Serial.begin(115200);
 
     delay(1000);
-    for (int i = 0; i < MAX_IMU_DATA; i++)
+    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
         data[i].sensorId = NO_SENSOR_ID;
 
     Config::setup();
@@ -101,9 +101,9 @@ void setup()
 
     // ✍️ On pré-remplit le texte fixe une bonne fois pour toutes au démarrage
     // strncpy évite les dépassements de mémoire si le texte est trop long
-    // strncpy(imuData_SH2_ROTATION_VECTOR.messageText, "ROTATION_VECTOR", sizeof(imuData_SH2_ROTATION_VECTOR.messageText));
-    // strncpy(imuData_SH2_ARVR_STABILIZED_RV.messageText, "ARVR_STABILIZED_RV", sizeof(imuData_SH2_ROTATION_VECTOR.messageText));
-    // strncpy(imuData_SH2_GAME_ROTATION_VECTOR.messageText, "GAME_ROTATION_VECTOR", sizeof(imuData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(CAPTEURSData_SH2_ROTATION_VECTOR.messageText, "ROTATION_VECTOR", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(CAPTEURSData_SH2_ARVR_STABILIZED_RV.messageText, "ARVR_STABILIZED_RV", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(CAPTEURSData_SH2_GAME_ROTATION_VECTOR.messageText, "GAME_ROTATION_VECTOR", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
 
     MonServeur::setup();
 }
@@ -111,42 +111,28 @@ void setup()
 unsigned long lastSendTime = 0;
 unsigned long lastStillAlive = 0;
 
-int testAndSend(CapteursMessage *m)
+int sendCAPTEURSData()
 {
-    if (!m->sent)
-    {
-        // Envoi complet (la taille s'adapte automatiquement avec sizeof)
-        // esp_now_send(s3Address228, (uint8_t *)&m, sizeof(m));
-        Communication::send(m);
-        // Serial.printf("%d:espTS=%d:imuTS=%d:Envoi réussi de [%s] |", millis(), m->esp_timestamp, m->imu_timestamp, m->messageText);
-        Log::addLog("Envoi réussi de [" + String(m->sensorId, DEC) + "] | r=" + String(m->q_real) + " i=" + String(m->q_i) + " j=" + String(m->q_j) + " k=" + String(m->q_k));
-        Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
-        m->sent = true;
-        return 1;
-    }
-    // int n=ESP_NOW_MAX_DATA_LEN;
-    return 0;
-}
-
-int sendIMUData()
-{
-    Serial.println("sendIMUData");
+    Serial.println("sendCAPTEURSData");
     int n = 0;
-    for (int i = 0; i < MAX_IMU_DATA; i++)
+    if(!Communication::openConnection())
+    {
+        Serial.println("Communication::openConnection() FAILED");
+        return 0;
+    }
+    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
     {
         CapteursMessage *m = &data[i];
         Serial.println(String(i, DEC) + ":" + String(m->sensorId, DEC) + ":" + m->sent);
         if (!m->sent && m->sensorId >= 0)
         {
-            // Envoi complet (la taille s'adapte automatiquement avec sizeof)
-            // esp_now_send(s3Address228, (uint8_t *)&m, sizeof(m));
             Communication::send(m);
-            // Serial.printf("%d:espTS=%d:imuTS=%d:Envoi réussi de [%s] |", millis(), m->esp_timestamp, m->imu_timestamp, m->messageText);
             Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
             m->sent = true;
             n++;
         }
     }
+    Communication::closeConnection();
     return n;
 }
 
@@ -156,7 +142,7 @@ String getJson()
     json += "\"ssid\": \"" + WiFi.SSID() + "\",";
     json += "\"channel\": " + String(WiFi.channel(), DEC) + ",";
     json += "\"test\": { \"texte\": \"zsxedcrfv\" },";
-    for (int i = 0; i < MAX_IMU_DATA; i++)
+    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
     {
         CapteursMessage *m = &data[i];
         String prefix = "";
@@ -225,17 +211,18 @@ void loop()
 #ifdef OTA_ACTIF
     OTA::loop();
 #endif
-    // delay(10);                           // Petite pause pour éviter de saturer le processeur
-    if (millis() - lastSendTime >= 1000) // Envoi toutes les 50 ms
+    // delay(10);
+    #define TempsEntreEnvoiData 1000
+    if (millis() - lastSendTime >= TempsEntreEnvoiData) // Envoi toutes les 50 ms
     {
         lastSendTime = millis();
         // Serial.println();
-        int n = sendIMUData();
+        int n = sendCAPTEURSData();
         if (n > 0)
-            Log::addLog("sendIMUData():" + String(n, DEC));
+            Log::addLog("sendCAPTEURSData():" + String(n, DEC));
         MonServeur::send(getJson());
     }
-    if (millis() - lastStillAlive >= 10000) // Envoi toutes les 50 ms
+    if (millis() - lastStillAlive >= 10000) // Envoi toutes les 10 secondes d'un message "still alive" pour indiquer que le capteur est toujours actif
     {
         lastStillAlive = millis();
         CapteursMessage *m = getMessage(STILL_ALIVE);
@@ -251,9 +238,9 @@ void loop()
 
         while (bno.getSensorEvent(&sensorValue))
         {
-            //Log::addLog("bno getEvent", true);
-            // On vérifie le type reçu du BNO085
-            // Serial.print("*" + String(sensorValue.sensorId, DEC));
+            // Log::addLog("bno getEvent", true);
+            //  On vérifie le type reçu du BNO085
+            //  Serial.print("*" + String(sensorValue.sensorId, DEC));
             CapteursMessage *m = getMessage(sensorValue.sensorId);
             if (m != nullptr)
             {
@@ -342,6 +329,5 @@ void loop()
                 }
             }
         }
-        // Serial.print("/");
     }
 }

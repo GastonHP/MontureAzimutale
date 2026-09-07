@@ -38,20 +38,21 @@ void Communication::setup(bool SSIDFound = true)
     tcpServer.begin();
 }
 
-bool Communication::receive()
+int Communication::receive()
 {
-    bool rv = false;
+    int nbDataReceived = 0;
+    unsigned long startTime = millis();
     WiFiClient clientS3 = tcpServer.available();
     if (!clientS3)
     {
         Communication::error = "No client connected.";
-        return rv;
+        return 0;
     }
     Log::addLog("Client connected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
     // Reste dans la boucle tant que le client est connecté et envoie des données
     while (clientS3.connected())
     {
-        if (clientS3.available())
+        while (clientS3.available())
         {
             clientS3.read((uint8_t *)&incomingData, sizeof(incomingData));
             if (incomingData.version != protocolVersion)
@@ -64,7 +65,7 @@ bool Communication::receive()
                 Imu::saveIMUData(&incomingData);
                 Communication::error = "Data received successfully.";
                 // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
-                rv = true;
+                nbDataReceived++;
             }
         }
     }
@@ -72,6 +73,6 @@ bool Communication::receive()
     // Le client s'est déconnecté (ou a envoyé client.stop())
     clientS3.stop(); // LIBÈRE LA SOCKET CÔTÉ SERVEUR
     Serial.println("Socket libéré côté serveur");
-    Log::addLog("Client disconnected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
-    return rv;
+    Log::addLog("temps écoulé: " + String(millis() - startTime) + " ms - nbDataReceived: " + String(nbDataReceived) + " - Client disconnected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
+    return nbDataReceived;
 }

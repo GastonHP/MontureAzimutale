@@ -4,6 +4,7 @@
 // Variables dynamiques qui changeront selon le lieu
 // IPAddress targetIP;
 String targetIP = "";
+WiFiClient Communication::clientCapteur;
 
 // ... (Garde ta structure IMUData et imuData)
 
@@ -36,16 +37,8 @@ void Communication::setup(bool networkHP = true)
         targetIP = "192.168.4.1";
     }
 }
-unsigned long nextTime = 0;
-bool Communication::send(CapteursMessage *incomingData)
+bool Communication::openConnection()
 {
-    WiFiClient clientCapteur;
-    Log::addLog("communication::send()");
-
-    if (millis() < nextTime)
-        return false;
-    nextTime = millis() + 1000;
-
     if (!clientCapteur.connect(targetIP.c_str(), portTCP))
     {
         Serial.println("❌ NON Connecté au S3 !");
@@ -54,9 +47,20 @@ bool Communication::send(CapteursMessage *incomingData)
     }
     Serial.println("🤝 Connecté au S3 !");
     Log::addLog("🤝 Connecté au S3 !");
-    clientCapteur.write((uint8_t *)incomingData, sizeof(CapteursMessage));
-    Log::addLog("Envoi des données à " + targetIP + " : r=" + String(incomingData->q_real) + " i=" + String(incomingData->q_i) + " j=" + String(incomingData->q_j) + " k=" + String(incomingData->q_k));
+    return true;
+}
+
+void Communication::closeConnection()
+{
     clientCapteur.flush();
     clientCapteur.stop();
+    Serial.println("🔌 Déconnecté du S3 !");
+    Log::addLog("🔌 Déconnecté du S3 !");
+}
+
+bool Communication::send(CapteursMessage *incomingData)
+{
+    Log::addLog("communication::send()");
+    clientCapteur.write((uint8_t *)incomingData, sizeof(CapteursMessage));
     return true;
 }

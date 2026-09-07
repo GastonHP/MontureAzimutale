@@ -9,7 +9,7 @@ private:
 public:
     // Public methods
     static void setup(bool SSIDFound);
-    static bool receive();
+    static int receive();
     static CapteursMessage *getData();
     static String error;
 };
