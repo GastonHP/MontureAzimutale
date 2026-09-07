@@ -70,9 +70,12 @@ int count = 10;
 
 void loop()
 {
+#ifdef OTA_ACTIF
+  OTA::loop();
+#endif
   if (!Telescope::loopActif)
     return;
-  generic_loop();
+
   if (OTA::started())
   {
     Telescope::stop();               // Arrête les moteurs avant de faire quoi que ce soit d'autre

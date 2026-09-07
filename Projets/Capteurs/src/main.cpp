@@ -115,7 +115,7 @@ int sendCAPTEURSData()
 {
     Serial.println("sendCAPTEURSData");
     int n = 0;
-    if(!Communication::openConnection())
+    if (!Communication::openConnection())
     {
         Serial.println("Communication::openConnection() FAILED");
         return 0;
@@ -210,9 +210,14 @@ void loop()
 {
 #ifdef OTA_ACTIF
     OTA::loop();
+    if (OTA::started())
+    {
+        return;
+    }
 #endif
-    // delay(10);
-    #define TempsEntreEnvoiData 1000
+
+// delay(10);
+#define TempsEntreEnvoiData 1000
     if (millis() - lastSendTime >= TempsEntreEnvoiData) // Envoi toutes les 50 ms
     {
         lastSendTime = millis();
