@@ -46,7 +46,7 @@ bool Communication::openConnection()
         return false;
     }
     Serial.println("🤝 Connecté au S3 !");
-    Log::addLog("🤝 Connecté au S3 !");
+    Log::addLog("🤝 Connecté au S3 !", true);
     return true;
 }
 
@@ -55,12 +55,12 @@ void Communication::closeConnection()
     clientCapteur.flush();
     clientCapteur.stop();
     Serial.println("🔌 Déconnecté du S3 !");
-    Log::addLog("🔌 Déconnecté du S3 !");
+    Log::addLog("🔌 Déconnecté du S3 !", true);
 }
 
 bool Communication::send(CapteursMessage *incomingData)
 {
-    Log::addLog("communication::send()");
+    Log::addLog("communication::send()", true);
     clientCapteur.write((uint8_t *)incomingData, sizeof(CapteursMessage));
     return true;
 }
