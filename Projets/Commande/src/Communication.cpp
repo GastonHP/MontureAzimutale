@@ -1,5 +1,5 @@
 #include "Communication.hpp"
-#include "imu.hpp"
+#include "capteur.hpp"
 #include "Log.hpp"
 
 static WiFiServer tcpServer(portTCP);
@@ -62,7 +62,7 @@ int Communication::receive()
             else
             {
                 incomingData.mon_timestamp = millis();
-                Imu::saveIMUData(&incomingData);
+                Capteur::saveIMUData(&incomingData);
                 Communication::error = "Data received successfully.";
                 // Serial.printf("Quaternions R: %.4f\n", incomingData.q_real);
                 nbDataReceived++;

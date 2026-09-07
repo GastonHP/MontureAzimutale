@@ -8,7 +8,7 @@
 #include "log.hpp"
 
 #include <Wire.h>
-#include "imu.hpp"
+#include "capteur.hpp"
 
 // Instanciation globale
 // Azimut : Step 5, Dir 6 | Altitude : Step 7, Dir 15
@@ -220,10 +220,10 @@ void Telescope::loop()
     nextLoop = millis() + 1000 / FrequenceDeBoucle;
     if (!setupOK || !loopActif)
         return;
-    CapteursMessage *m = Imu::hasNewData();
+    CapteursMessage *m = Capteur::hasNewData();
     if (m != nullptr)
     {
-        Telescope::log(Imu::IMUDataToString(m));
+        Telescope::log(Capteur::IMUDataToString(m));
         m->treated = true;
     }
     if (nbCommandes > 0)

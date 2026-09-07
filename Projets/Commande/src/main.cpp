@@ -10,7 +10,7 @@
 #include "Telescope.hpp"
 #include "MonServeur.hpp"
 #include "monEcran.hpp"
-#include "imu.hpp"
+#include "capteur.hpp"
 
 #ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
@@ -61,12 +61,12 @@ void setup()
   // setup du GPS
   GPSManager::setup(); // RX=18, TX=17
   logGen("GPS manager set.");
-  Imu::setup();
-  logGen("imu setup done!");
+  Capteur::setup();
+  logGen("Capteur setup done!");
 }
 
 unsigned long nextTime = 0;
-int count = 10;
+//int count = 10;
 
 void loop()
 {
@@ -83,14 +83,14 @@ void loop()
     GPSManager::stop();
     return;
   }
-  Imu::loop();
+  Capteur::loop();
   MonServeur::loop();
   GPSManager::loop();
   Telescope::loop();
   MonEcran::loop();
   if (millis() > nextTime)
   {
-    nextTime = millis() + 5000;
-    Log::addLog("Still alive!");
+    nextTime = millis() + 1000;
+    Log::addLog("--------Still alive!");
   }
 }
