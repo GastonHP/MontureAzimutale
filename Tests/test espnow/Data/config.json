@@ -1,0 +1,48 @@
+{
+    "Version": 0,
+    "SummerTime": 1,
+    "ssids": [
+        {
+            "ssid": "HerpoelTP2.4",
+            "psw": "UneAutreHistoireCommence"
+        },
+        {
+            "ssid": "HerpoelTP5",
+            "psw": "UneAutreHistoireCommence"
+        },
+        {
+            "ssid": "HerpoelTP2.4",
+            "psw": "00485395339418867374"
+        },
+        {
+            "ssid": "HerpoelTP5",
+            "psw": "00485395339418867374"
+        },
+        {
+            "ssid": "FRITZ!Box 4060 GY",
+            "psw": "00485395339418867374"
+        },
+        {
+            "ssid": "RE305_2.4",
+            "psw": "00485395339418867374"
+        }
+    ],
+    "wifiParms": {
+        "gateway": "192.168.0.1",
+        "subnet": "255.255.255.0",
+        "primaryDNS": "195.238.2.22",
+        "secondaryDNS": "195.238.2.21"
+    },
+    "MQTT": {
+        "ADDR": "192.168.0.245",
+        "USER": "ghislain",
+        "PSW": "MonDessert",
+        "PORT": 1883
+    },
+    "FTP": {
+        "ADDR": "192.168.0.250",
+        "USER": "ftpLocalUser",
+        "PSW": "MonFtp2022$",
+        "DIR": "/home/ConfigESP"
+    }
+}

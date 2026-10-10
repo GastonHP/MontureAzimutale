@@ -85,7 +85,7 @@ void setup()
   // --- Init écran ---
   Serial.println(String(millis(), DEC) + " :Initialisation de l'écran...");
   tft.init(240, 320);
-  tft.setRotation(2);
+  tft.setRotation(0);
   tft.fillScreen(ST77XX_BLACK);
 
   tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK); // Texte blanc sur fond noir

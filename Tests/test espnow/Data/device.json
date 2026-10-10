@@ -1,0 +1,8 @@
+{
+    "local": "xxx",
+    "delta_t": 0.30,
+    "delta_t2": -0.30,
+    "delta_h": 0.0,
+    "sleep": 0,
+    "TBRC": 5000
+}

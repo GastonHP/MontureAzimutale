@@ -17,6 +17,14 @@
 			"path": "Tests/test bno085"
 		},
 		{
+			"name": "test drv8825",
+			"path": "Tests/test drv8825"
+		},
+		{
+			"name": "test espnow",
+			"path": "Tests/test espnow"
+		},
+		{
 			"name": "lib",
 			"path": "../lib"
 		},

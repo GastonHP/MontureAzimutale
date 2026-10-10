@@ -2,15 +2,33 @@
 #include "capteur.hpp"
 #include "Log.hpp"
 
+#ifdef MODE_TCP
 static WiFiServer tcpServer(portTCP);
-
 CapteursMessage Communication::incomingData;
-String Communication::error = "";
-
-// ... (Garde ta structure CapteursMessage et ta variable incomingData)
-
 CapteursMessage *Communication::getData() { return &incomingData; }
+#endif
 
+#ifdef MODE_MAC
+#include <QuickEspNow.h>
+bool sent = true;
+void dataSent(uint8_t *address, uint8_t status)
+{
+    sent = true;
+    Serial.printf("Message sent to " MACSTR ", status: %d\n", MAC2STR(address), status);
+}
+
+void dataReceived(uint8_t *address, uint8_t *data, uint8_t len, signed int rssi, bool broadcast)
+{
+    Capteur::saveIMUData((CapteursMessage *)data);
+    // Serial.print("Received: ");
+    // Serial.printf("%.*s\n", len, data);
+    // Serial.printf("RSSI: %d dBm\n", rssi);
+    // Serial.printf("From: " MACSTR "\n", MAC2STR(address));
+    // Serial.printf("%s\n", broadcast ? "Broadcast" : "Unicast");
+}
+#endif
+
+String Communication::error = "";
 void Communication::setup(bool SSIDFound = true)
 {
     if (SSIDFound)
@@ -35,13 +53,22 @@ void Communication::setup(bool SSIDFound = true)
         Serial.print("👉 IP fixe du S3 en mode nomade : ");
         Serial.println(WiFi.softAPIP()); // Ce sera TOUJOURS 192.168.4.1
     }
+#ifdef MODE_TCP
     tcpServer.begin();
+#endif
+#ifdef MODE_MAC
+    quickEspNow.begin(1, 0, false);
+    quickEspNow.onDataSent(dataSent);
+    quickEspNow.onDataRcvd(dataReceived);
+#endif
 }
 
+#ifdef MODE_TCP
+unsigned long startTime = millis();
 int Communication::receive()
 {
     int nbDataReceived = 0;
-    unsigned long startTime = millis();
+
     WiFiClient clientS3 = tcpServer.available();
     if (!clientS3)
     {
@@ -74,5 +101,7 @@ int Communication::receive()
     clientS3.stop(); // LIBÈRE LA SOCKET CÔTÉ SERVEUR
     Serial.println("Socket libéré côté serveur");
     Log::addLog("temps écoulé: " + String(millis() - startTime) + " ms - nbDataReceived: " + String(nbDataReceived) + " - Client disconnected from " + clientS3.remoteIP().toString() + ":" + String(clientS3.remotePort()));
+
     return nbDataReceived;
 }
+#endif

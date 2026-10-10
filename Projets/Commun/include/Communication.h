@@ -3,14 +3,19 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
+//#define MODE_TCP // Configuration pour le mode TCP (Client)
+#ifndef MODE_TCP
+// Configuration pour le mode MAC
+#define MODE_MAC
+#endif
+
 // Configuration pour le mode extérieur (Point d'Accès)
 #define ap_ssid "Commande_net"
 #define ap_password "12345678" // 8 caractères min.
 
+#ifdef MODE_TCP
 #define portTCP 8080
-
-// const char* ap_ssid       = "Telescope_Net";
-// const char* ap_password   = "12345678"; // 8 caractères min.
+#endif
 
 #define protocolVersion 2
 typedef struct CapteursMessage

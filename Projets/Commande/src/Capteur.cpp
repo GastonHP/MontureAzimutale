@@ -132,5 +132,7 @@ String Capteur::IMUDataToString(CapteursMessage *data)
 
 void Capteur::loop()
 {
+#ifdef MODE_TCP
     Capteur::nbDataReceived = Communication::receive();
+#endif
 }
