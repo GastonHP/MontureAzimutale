@@ -3,28 +3,31 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-//#define MODE_TCP // Configuration pour le mode TCP (Client)
-#ifndef MODE_TCP
-// Configuration pour le mode MAC
-#define MODE_MAC
-#endif
-
 // Configuration pour le mode extérieur (Point d'Accès)
 #define ap_ssid "Commande_net"
 #define ap_password "12345678" // 8 caractères min.
 
-#ifdef MODE_TCP
-#define portTCP 8080
-#endif
+#define protocolVersion 3
 
-#define protocolVersion 2
-typedef struct CapteursMessage
+typedef enum MessageType
 {
-    // gestion du message
+    IMU_DATA = 100,
+    STILL_ALIVE = 104,
+    STRING_512 = 202
+} MessageType;
+
+typedef struct MessageInfo
+{
     uint16_t version = protocolVersion;
-    bool sent = true;      // Indique si le message a été envoyé avec succès
-    bool treated = false;  // Indique si le message a été traité avec succès
-    bool received = false; // Indique si le message a été reçu avec succès
+    MessageType messageType;
+    bool sent = true;       // Indique si le message a été envoyé avec succès
+    bool treated = false;   // Indique si le message a été traité avec succès
+    bool received = false;  // Indique si le message a été reçu avec succès
+    uint64_t mon_timestamp; // timestamp du module commande
+} MessageInfo;
+
+typedef struct CapteursInfo
+{
     // partie IMU
     uint8_t sensorId;
     // partie quaternion
@@ -38,9 +41,16 @@ typedef struct CapteursMessage
     // partie timestamp
     uint64_t imu_timestamp; // Timestamp du capteur en microsecondes
     uint64_t cap_timestamp; // Timestamp de l'ESP capteur en millisecondes
-    uint64_t mon_timestamp; // timestamp du module commande
+} CapteursInfo;
+
+typedef struct CapteursMessage
+{
+    MessageInfo messageInfo;
+    CapteursInfo capteursInfo;
 } CapteurMessage;
 
-// // ⚠️ METS ICI L'ADRESSE MAC DE TON ESP32-S3 PRINCIPAL
-// uint8_t s3Address228[] = {0x98, 0x3D, 0xAE, 0x61, 0x9B, 0x64};
-// uint8_t s3Address227[] = {0x30, 0xED, 0xA0, 0xBD, 0x56, 0xDC}; // Adresse MAC de l'ESP32-S3 principal
+typedef struct StringMessage
+{
+    MessageInfo messageInfo;
+    char messageText[512];
+} StringMessage;

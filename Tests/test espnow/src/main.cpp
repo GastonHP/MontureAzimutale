@@ -1,9 +1,19 @@
 
+#include "commun.hpp"
+#include "esp_infos.hpp"
+#include "Config.hpp"
+#include "Receiver.hpp"
+#include "OTA.hpp"
+
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
-#include "config.hpp"
+
+#ifdef TELNET_ACTIF
+#include <ESPTelnet.h>
+extern ESPTelnet telnet;
+#endif
 #ifdef USE_TEMP_SENSOR
 #include <DallasTemperature.h>
 // --- DS18B20 ---
@@ -26,10 +36,13 @@ DallasTemperature sensors(&oneWire);
 // --- Écran ---
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
+void display(String s) { tft.println(s); }
+
 void setup()
 {
   Serial.begin(SERIAL_SPEED);
-  Serial.println(String(millis(), DEC) + "Démarrage du test espnow...");
+  printInfo();
+  Serial.println(String(millis(), DEC) + " :Démarrage du test espnow...");
 
   // --- PWM Backlight ---
   Serial.println(String(millis(), DEC) + " :Initialisation du PWM pour le backlight...");
@@ -50,18 +63,36 @@ void setup()
   tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK); // Texte blanc sur fond noir
   tft.setTextSize(2);
   tft.setCursor(0, 0);
-  tft.println("Test ESP-NOW"); 
-    // setup de la config wifi, mqtt, ftp, OTA, etc.
-  Config::setup();
+  tft.println("Test ESP-NOW");
+  // setup de la config wifi, mqtt, ftp, OTA, etc.
+  Config::setup(display);
+
+#ifdef OTA_ACTIF
+  OTA::setup();
+#endif
   tft.println("Config::setup done.");
-}
-
-void gen_loop()
-{
-
+  Receiver::setup(Config::NetworkHP());
 }
 
 void loop()
 {
-  gen_loop();
+#ifdef OTA_ACTIF
+  OTA::loop();
+  if (OTA::started())
+  {
+    return;
+  }
+#endif
+  generic_loop();
+  Receiver::loop();
+  delay(100);
+#ifdef TELNET_ACTIF
+  // Exemple : envoyer un message périodique dans PuTTY
+  static unsigned long lastSend = 0;
+  if (millis() - lastSend > 5000)
+  {
+    lastSend = millis();
+    telnet.println("Test ESP-NOW : " + String(millis(), DEC) + " ms");
+  }
+#endif
 }

@@ -7,7 +7,7 @@
 #include "OTA.hpp"
 #include "log.hpp"
 #include "MonServeur.hpp"
-#include "Communication.hpp"
+#include "Sender.hpp"
 
 #define BNO_ADDR 0x4B
 #define BNO_INT_PIN 19
@@ -18,7 +18,6 @@ volatile bool bnoDataReady = false;
 
 #define MAX_CAPTEURS_DATA 4
 const uint8_t NO_SENSOR_ID = -1;
-const uint8_t STILL_ALIVE = -2;
 
 CapteursMessage data[MAX_CAPTEURS_DATA];
 
@@ -34,12 +33,12 @@ CapteursMessage *getMessage(uint8_t sensorID)
 {
     // Serial.println("getMessage sensorId=" + String(sensorID, DEC));
     for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        if (data[i].sensorId == sensorID)
+        if (data[i].capteursInfo.sensorId == sensorID)
             return &data[i];
     for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        if (data[i].sensorId == NO_SENSOR_ID)
+        if (data[i].capteursInfo.sensorId == NO_SENSOR_ID)
         {
-            data[i].sensorId = sensorID;
+            data[i].capteursInfo.sensorId = sensorID;
             return &data[i];
         }
     return nullptr;
@@ -47,14 +46,14 @@ CapteursMessage *getMessage(uint8_t sensorID)
 
 bool addMessage(CapteursMessage *m)
 {
-    CapteursMessage *dest = getMessage(m->sensorId);
+    CapteursMessage *dest = getMessage(m->capteursInfo.sensorId);
     if (dest == nullptr)
         dest = getMessage(NO_SENSOR_ID);
     if (dest == nullptr)
         return false;
     memcpy(dest, m, sizeof(CapteursMessage));
-    dest->treated = false;
-    dest->sent = false;
+    dest->messageInfo.treated = false;
+    dest->messageInfo.sent = false;
     return true;
 }
 
@@ -72,15 +71,16 @@ void setup()
 
     delay(1000);
     for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        data[i].sensorId = NO_SENSOR_ID;
+        data[i].capteursInfo.sensorId = NO_SENSOR_ID;
 
     Config::setup();
     logGen("Config::setup() done.", false);
+    generic_setup();
 #ifdef OTA_ACTIF
     OTA::setup();
 #endif
 
-    Communication::setup(Config::NetworkHP());
+    Sender::setup(Config::NetworkHP());
     pinMode(BNO_INT_PIN, INPUT_PULLUP);
     Wire.begin();
 
@@ -115,24 +115,24 @@ int sendCAPTEURSData()
 {
     Serial.println("sendCAPTEURSData");
     int n = 0;
-    if (!Communication::openConnection())
+    if (!Sender::openConnection())
     {
-        Serial.println("Communication::openConnection() FAILED");
+        Serial.println("Sender::openConnection() FAILED");
         return 0;
     }
     for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
     {
         CapteursMessage *m = &data[i];
-        Serial.println(String(i, DEC) + ":" + String(m->sensorId, DEC) + ":" + m->sent);
-        if (!m->sent && m->sensorId >= 0)
+        Serial.println(String(i, DEC) + ":" + String(m->capteursInfo.sensorId, DEC) + ":" + m->messageInfo.sent);
+        if (!m->messageInfo.sent && m->capteursInfo.sensorId >= 0)
         {
-            Communication::send(m);
-            Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->sensorId, m->q_real, m->q_i, m->q_j, m->q_k);
-            m->sent = true;
+            Sender::send(m);
+            Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->capteursInfo.sensorId, m->capteursInfo.q_real, m->capteursInfo.q_i, m->capteursInfo.q_j, m->capteursInfo.q_k);
+            m->messageInfo.sent = true;
             n++;
         }
     }
-    Communication::closeConnection();
+    Sender::closeConnection();
     return n;
 }
 
@@ -146,7 +146,7 @@ String getJson()
     {
         CapteursMessage *m = &data[i];
         String prefix = "";
-        switch (m->sensorId)
+        switch (m->capteursInfo.sensorId)
         {
         case SH2_ARVR_STABILIZED_RV:
             prefix = "arvr_";
@@ -160,10 +160,10 @@ String getJson()
         }
         if (prefix.length() > 0)
         {
-            json += "\"" + prefix + "r\":" + String(m->q_real) + ",";
-            json += "\"" + prefix + "i\":" + String(m->q_i) + ",";
-            json += "\"" + prefix + "j\":" + String(m->q_j) + ",";
-            json += "\"" + prefix + "k\":" + String(m->q_k) + ",";
+            json += "\"" + prefix + "r\":" + String(m->capteursInfo.q_real) + ",";
+            json += "\"" + prefix + "i\":" + String(m->capteursInfo.q_i) + ",";
+            json += "\"" + prefix + "j\":" + String(m->capteursInfo.q_j) + ",";
+            json += "\"" + prefix + "k\":" + String(m->capteursInfo.q_k) + ",";
         }
     }
     // json += "\"arvr_yaw\":" + String(ARVR_STABILIZED_RV_anglesActuels.yaw, 2) + ",";
@@ -215,6 +215,9 @@ void loop()
         return;
     }
 #endif
+generic_loop();
+
+Sender::loop();
 
 // delay(10);
 #define TempsEntreEnvoiData 1000
@@ -235,6 +238,7 @@ void loop()
         {
             addMessage(m);
         }
+        Sender::sendString("STR={\"still_alive\": true, \"timestamp\": " + String(millis()) + "}");
     }
 
     if (bnoDataReady)
@@ -250,7 +254,7 @@ void loop()
             if (m != nullptr)
             {
                 // Serial.print("@");
-                m->sensorId = sensorValue.sensorId;
+                m->capteursInfo.sensorId = sensorValue.sensorId;
                 float current_real;
                 float current_i;
                 float current_j;
@@ -264,20 +268,20 @@ void loop()
                     current_k = sensorValue.un.rotationVector.k;
 
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->capteursInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->capteursInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
-                        m->accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // Convertir en degrés
-                        m->precision = sensorValue.status & 0x03;                       // Précision du capteur (0-3)
-                        m->imu_timestamp = sensorValue.timestamp;                       // Timestamp du BNO085
-                        m->cap_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
+                        m->capteursInfo.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // Convertir en degrés
+                        m->capteursInfo.precision = sensorValue.status & 0x03;                       // Précision du capteur (0-3)
+                        m->capteursInfo.imu_timestamp = sensorValue.timestamp;                       // Timestamp du BNO085
+                        m->capteursInfo.cap_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->q_real = current_real;
-                        m->q_i = current_i;
-                        m->q_j = current_j;
-                        m->q_k = current_k;
+                        m->capteursInfo.q_real = current_real;
+                        m->capteursInfo.q_i = current_i;
+                        m->capteursInfo.q_j = current_j;
+                        m->capteursInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }
@@ -288,21 +292,21 @@ void loop()
                     current_j = sensorValue.un.arvrStabilizedRV.j;
                     current_k = sensorValue.un.arvrStabilizedRV.k;
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->capteursInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->capteursInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
 
-                        m->accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // Convertir en degrés
-                        m->precision = sensorValue.status & 0x03;                         // Précision du capteur (0-3)
-                        m->imu_timestamp = sensorValue.timestamp;                         // Timestamp du BNO085
-                        m->cap_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
+                        m->capteursInfo.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // Convertir en degrés
+                        m->capteursInfo.precision = sensorValue.status & 0x03;                         // Précision du capteur (0-3)
+                        m->capteursInfo.imu_timestamp = sensorValue.timestamp;                         // Timestamp du BNO085
+                        m->capteursInfo.cap_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->q_real = current_real;
-                        m->q_i = current_i;
-                        m->q_j = current_j;
-                        m->q_k = current_k;
+                        m->capteursInfo.q_real = current_real;
+                        m->capteursInfo.q_i = current_i;
+                        m->capteursInfo.q_j = current_j;
+                        m->capteursInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }
@@ -314,21 +318,21 @@ void loop()
                     current_k = sensorValue.un.gameRotationVector.k;
 
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->capteursInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->capteursInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
 
-                        m->accuracy = -1;
-                        m->precision = sensorValue.status & 0x03; // Précision du capteur (0-3)
-                        m->imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
-                        m->cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
+                        m->capteursInfo.accuracy = -1;
+                        m->capteursInfo.precision = sensorValue.status & 0x03; // Précision du capteur (0-3)
+                        m->capteursInfo.imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
+                        m->capteursInfo.cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->q_real = current_real;
-                        m->q_i = current_i;
-                        m->q_j = current_j;
-                        m->q_k = current_k;
+                        m->capteursInfo.q_real = current_real;
+                        m->capteursInfo.q_i = current_i;
+                        m->capteursInfo.q_j = current_j;
+                        m->capteursInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }

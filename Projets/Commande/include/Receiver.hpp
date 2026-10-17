@@ -1,7 +1,7 @@
 #pragma once
 #include "../../Commun/include/Communication.h"
 
-class Communication
+class Receiver
 {
 private:
 // Private members

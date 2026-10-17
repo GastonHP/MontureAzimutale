@@ -1,5 +1,5 @@
 #include "Capteur.hpp"
-#include "Communication.hpp"
+#include "Receiver.hpp"
 #include "Config.hpp"
 
 CapteursMessage Capteur::lastdata;
@@ -78,7 +78,7 @@ String Capteur::getSummary()
 
 void Capteur::setup()
 {
-    Communication::setup(Config::NetworkHP());
+    Receiver::setup(Config::NetworkHP());
 }
 
 bool Capteur::saveIMUData(CapteursMessage *m)
@@ -133,6 +133,6 @@ String Capteur::IMUDataToString(CapteursMessage *data)
 void Capteur::loop()
 {
 #ifdef MODE_TCP
-    Capteur::nbDataReceived = Communication::receive();
+    Capteur::nbDataReceived = Receiver::receive();
 #endif
 }
