@@ -5,26 +5,6 @@
 			"path": "."
 		},
 		{
-			"name": "Capteurs",
-			"path": "Projets/Capteurs"
-		},
-		{
-			"name": "Commande",
-			"path": "Projets/Commande"
-		},
-		{
-			"name": "test bno085",
-			"path": "Tests/test bno085"
-		},
-		{
-			"name": "test drv8825",
-			"path": "Tests/test drv8825"
-		},
-		{
-			"name": "test espnow",
-			"path": "Tests/test espnow"
-		},
-		{
 			"name": "lib",
 			"path": "../lib"
 		},
@@ -33,7 +13,5 @@
 			"path": "D:/tmp/pio/pio_monture"
 		}
 	],
-	"settings": {
-		"editor.formatOnSave": true
-	}
+	"settings": {}
 }

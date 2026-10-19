@@ -2,7 +2,7 @@
 #include "Receiver.hpp"
 #include "Config.hpp"
 
-CapteursMessage Capteur::lastdata;
+MessageData Capteur::lastdata;
 Capteur Capteur::rotationCapteur = Capteur(Capteur::TYPE::ROTATION);
 Capteur Capteur::ARVRCapteur = Capteur(Capteur::TYPE::ARVR);
 Capteur Capteur::gameRotationCapteur = Capteur(Capteur::TYPE::GAME_ROTATION);
@@ -13,43 +13,43 @@ Capteur::Capteur(Capteur::TYPE t)
     typeImu = t;
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        data[i].sensorId = Capteur::TYPE::NO_SENSOR_ID;
+        data[i].imuInfo.sensorId = Capteur::TYPE::NO_SENSOR_ID;
     }
 }
 
-bool Capteur::areEqual(CapteursMessage *a, CapteursMessage *b)
+bool Capteur::areEqual(MessageData *a, MessageData *b)
 {
 #define MAX_DIFF (0.001)
-    if (abs(a->q_i - b->q_i) > MAX_DIFF)
+    if (abs(a->imuInfo.q_i - b->imuInfo.q_i) > MAX_DIFF)
         return false;
-    if (abs(a->q_j - b->q_j) > MAX_DIFF)
+    if (abs(a->imuInfo.q_j - b->imuInfo.q_j) > MAX_DIFF)
         return false;
-    if (abs(a->q_k - b->q_k) > MAX_DIFF)
+    if (abs(a->imuInfo.q_k - b->imuInfo.q_k) > MAX_DIFF)
         return false;
-    if (abs(a->q_real - b->q_real) > MAX_DIFF)
+    if (abs(a->imuInfo.q_real - b->imuInfo.q_real) > MAX_DIFF)
         return false;
     return true;
 }
 
-bool Capteur::addImuData(CapteursMessage *d)
+bool Capteur::addImuData(MessageData *d)
 {
-    if (d->sensorId != typeImu)
+    if (d->imuInfo.sensorId != typeImu)
         return false;
     if (areEqual(d, &data[0]) == false)
     {
         for (int i = MAX_IMU_DATA - 1; i > 0; i--)
-            memcpy(&data[i], &data[i - 1], sizeof(CapteursMessage));
+            memcpy(&data[i], &data[i - 1], sizeof(MessageData));
     }
-    memcpy(&data[0], d, sizeof(CapteursMessage));
+    memcpy(&data[0], d, sizeof(MessageData));
     return true;
 }
 
-CapteursMessage *Capteur::getData(int index)
+MessageData *Capteur::getData(int index)
 {
     if (index < 0 || index >= MAX_IMU_DATA)
         return nullptr;
-    CapteursMessage *adr = &data[index];
-    if (adr->sensorId != typeImu)
+    MessageData *adr = &data[index];
+    if (adr->imuInfo.sensorId != typeImu)
         return nullptr;
     return adr;
 }
@@ -59,7 +59,7 @@ int Capteur::nbData()
     int count = 0;
     for (int i = 0; i < MAX_IMU_DATA; i++)
     {
-        if (data[i].sensorId == typeImu)
+        if (data[i].imuInfo.sensorId == typeImu)
             count++;
         else
             break;
@@ -78,14 +78,14 @@ String Capteur::getSummary()
 
 void Capteur::setup()
 {
-    Receiver::setup(Config::NetworkHP());
+    
 }
 
-bool Capteur::saveIMUData(CapteursMessage *m)
+bool Capteur::saveIMUData(MessageData *m)
 {
-    memcpy(&lastdata, m, sizeof(CapteursMessage));
+    memcpy(&lastdata, m, sizeof(MessageData));
     lastdata.treated = false;
-    switch (m->sensorId)
+    switch (m->imuInfo.sensorId)
     {
     case Capteur::TYPE::ARVR:
         return ARVRCapteur.addImuData(m);
@@ -100,7 +100,7 @@ bool Capteur::saveIMUData(CapteursMessage *m)
     return false;
 }
 
-CapteursMessage *Capteur::hasNewData()
+MessageData *Capteur::hasNewData()
 {
     if (lastdata.treated == false)
     {
@@ -110,22 +110,23 @@ CapteursMessage *Capteur::hasNewData()
     return nullptr;
 }
 
-String Capteur::IMUDataToString(CapteursMessage *data)
+String Capteur::IMUDataToString(MessageData *data)
 {
     String str = "capteursData: ";
+    str += "sent=" + String(data->sent ? "true" : "false") + ", ";
     str += "version=" + String(data->version) + ", ";
     str += "sent=" + String(data->sent ? "true" : "false") + ", ";
     str += "treated=" + String(data->treated ? "true" : "false") + ", ";
-    str += "sensorId=" + String(data->sensorId) + ", ";
-    str += "q_real=" + String(data->q_real, 4) + ", ";
-    str += "q_i=" + String(data->q_i, 4) + ", ";
-    str += "q_j=" + String(data->q_j, 4) + ", ";
-    str += "q_k=" + String(data->q_k, 4) + ", ";
+    str += "sensorId=" + String(data->imuInfo.sensorId) + ", ";
+    str += "q_real=" + String(data->imuInfo.q_real, 4) + ", ";
+    str += "q_i=" + String(data->imuInfo.q_i, 4) + ", ";
+    str += "q_j=" + String(data->imuInfo.q_j, 4) + ", ";
+    str += "q_k=" + String(data->imuInfo.q_k, 4) + ", ";
 
-    str += "accuracy=" + String(data->accuracy, 4) + ", ";
-    str += "precision=" + String(data->precision) + ", ";
-    str += "imu_timestamp=" + String(data->imu_timestamp) + ", ";
-    str += "cap_timestamp=" + String(data->cap_timestamp) + ", ";
+    str += "accuracy=" + String(data->imuInfo.accuracy, 4) + ", ";
+    str += "precision=" + String(data->imuInfo.precision) + ", ";
+    str += "imu_timestamp=" + String(data->imuInfo.imu_timestamp) + ", ";
+    str += "cap_timestamp=" + String(data->imuInfo.cap_timestamp) + ", ";
     str += "mon_timestamp=" + String(data->mon_timestamp);
     return str;
 }

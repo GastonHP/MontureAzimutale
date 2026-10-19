@@ -18,26 +18,26 @@ public:
         GAME_ROTATION = SH2_GAME_ROTATION_VECTOR
     };
     Capteur(Capteur::TYPE t);
-    bool addImuData(CapteursMessage *data);
-    CapteursMessage *getData(int index = 0);
+    bool addImuData(MessageData *data);
+    MessageData *getData(int index = 0);
     int nbData();
 
     static void setup();
     static void loop();
-    static bool saveIMUData(CapteursMessage *m);
-    static CapteursMessage *hasNewData();
+    static bool saveIMUData(MessageData *m);
+    static MessageData *hasNewData();
 
     static Capteur rotationCapteur;
     static Capteur ARVRCapteur;
     static Capteur gameRotationCapteur;
-    static String IMUDataToString(CapteursMessage *data);
+    static String IMUDataToString(MessageData *data);
     static String getSummary();
 
 private:
     Capteur::TYPE typeImu;
-    CapteursMessage data[MAX_IMU_DATA];
-    static bool areEqual(CapteursMessage *a, CapteursMessage *b);
+    MessageData data[MAX_IMU_DATA];
+    static bool areEqual(MessageData *a, MessageData *b);
 
-    static CapteursMessage lastdata;
+    static MessageData lastdata;
     static int nbDataReceived;
 };

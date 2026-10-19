@@ -3,8 +3,8 @@ import os
 Import("env")
 
 # 📂 Définition des chemins exacts
-html_file = os.path.join(env.get("PROJECT_DIR"), "html", "index.html")
-header_file = os.path.join(env.get("PROJECT_DIR"), "include", "html_autogen.h")
+html_file = os.path.join(env.get("PROJECT_DIR"), "Projets/Commande/html", "index.html")
+header_file = os.path.join(env.get("PROJECT_DIR"), "Projets/Commande/include", "html_autogen.h")
 
 
 # 🛠️ Fonction de conversion (exécutée par PlatformIO s'il détecte un changement)

@@ -12,6 +12,7 @@ private:
 public:
     // Public methods
     static void setup(bool SSIDFound);
+    static void loop();
 
 #ifdef MODE_TCP
     static int receive();

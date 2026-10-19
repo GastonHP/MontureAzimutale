@@ -86,13 +86,21 @@ void loop()
   generic_loop();
   Receiver::loop();
   delay(100);
-#ifdef TELNET_ACTIF
+
   // Exemple : envoyer un message périodique dans PuTTY
   static unsigned long lastSend = 0;
   if (millis() - lastSend > 5000)
   {
     lastSend = millis();
+#ifdef TELNET_ACTIF
     telnet.println("Test ESP-NOW : " + String(millis(), DEC) + " ms");
-  }
 #endif
+    static int toggle = 0;
+    toggle++;
+    if (toggle % 4 == 0)
+      tft.enableDisplay(true); // Éteint l'affichage
+    // Pour réveiller :
+    else
+      tft.enableDisplay(false);
+  }
 }

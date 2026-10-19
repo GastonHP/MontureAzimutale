@@ -8,7 +8,7 @@
 
 const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 <html>
-<!-- test -->
+<!-- test ? -->
 <head>
     <title>Capteur bno085</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">

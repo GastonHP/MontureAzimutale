@@ -1,22 +1,21 @@
 #include "Receiver.hpp"
-#include "capteur.hpp"
 #include "Log.hpp"
 #include "WiFiUdp.h"
 
 WiFiUDP udp;
-const unsigned int localPort = 4210; // Port d'écoute local
+
 char packetBuffer[512];              // Buffer de réception
 
 String Receiver::error = "";
 void Receiver::setup(bool SSIDFound = true)
 {
-    if (!udp.begin(localPort))
+    if (!udp.begin(udpLocalPort))
     {
         error = "Erreur lors de l'initialisation du port UDP";
         Log::addError(error);
         return;
     }
-    Log::addLog("Récepteur ESP-NOW initialisé sur le port " + String(localPort));
+    Log::addLog("Récepteur ESP-NOW initialisé sur le port " + String(udpLocalPort));
 }
 
 void Receiver::loop()

@@ -11,9 +11,15 @@
 #include "MonServeur.hpp"
 #include "monEcran.hpp"
 #include "capteur.hpp"
+#include "Receiver.hpp"
 
 #ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
+#endif
+
+#ifdef TELNET_ACTIF
+#include <ESPTelnet.h>
+extern ESPTelnet telnet;
 #endif
 
 static void logGen(String s, bool LogFile = true)
@@ -63,10 +69,11 @@ void setup()
   logGen("GPS manager set.");
   Capteur::setup();
   logGen("Capteur setup done!");
+  Receiver::setup(Config::NetworkHP());
 }
 
 unsigned long nextTime = 0;
-//int count = 10;
+// int count = 10;
 
 void loop()
 {
@@ -93,4 +100,5 @@ void loop()
     nextTime = millis() + 1000;
     Log::addLog("--------Still alive!");
   }
+  Receiver::loop();
 }
