@@ -16,29 +16,29 @@ Adafruit_BNO08x bno;
 sh2_SensorValue_t sensorValue;
 volatile bool bnoDataReady = false;
 
-#define MAX_CAPTEURS_DATA 4
-const uint8_t NO_SENSOR_ID = -1;
+#define MAX_MESSAGES_DATA 10
 
-MessageData data[MAX_CAPTEURS_DATA];
+MessageData data[MAX_MESSAGES_DATA];
 
-MessageData CAPTEURSData;
+static MessageData messageData;
 
 // esp_now_peer_info_t peerInfo;
 
-const float SEUIL_MOUVEMENT = 0.0005;
+const float SEUIL_MOUVEMENT = 0.001;
+const float SEUIL_GRAVITY = 0.01;
 
 void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
 
-MessageData *getMessage(uint8_t sensorID)
+MessageData *getMessage(MessageType messageType)
 {
-    // Serial.println("getMessage sensorId=" + String(sensorID, DEC));
-    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        if (data[i].imuInfo.sensorId == sensorID)
+    // Serial.println("getMessage messageType=" + String(messageType, DEC));
+    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
+        if (data[i].messageType == messageType)
             return &data[i];
-    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        if (data[i].imuInfo.sensorId == NO_SENSOR_ID)
+    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
+        if (data[i].messageType == NO_MESSAGE_TYPE)
         {
-            data[i].imuInfo.sensorId = sensorID;
+            data[i].messageType = messageType;
             return &data[i];
         }
     return nullptr;
@@ -46,9 +46,9 @@ MessageData *getMessage(uint8_t sensorID)
 
 bool addMessage(MessageData *m)
 {
-    MessageData *dest = getMessage(m->imuInfo.sensorId);
+    MessageData *dest = getMessage(m->messageType);
     if (dest == nullptr)
-        dest = getMessage(NO_SENSOR_ID);
+        dest = getMessage(NO_MESSAGE_TYPE);
     if (dest == nullptr)
         return false;
     memcpy(dest, m, sizeof(MessageData));
@@ -70,12 +70,10 @@ void setup()
 {
     Serial.setTxBufferSize(2048);
     Serial.begin(115200);
-    
-    stillAliveMessage.messageType = STRING_256;
 
     delay(1000);
-    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
-        data[i].imuInfo.sensorId = NO_SENSOR_ID;
+    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
+        data[i].messageType = NO_MESSAGE_TYPE;
 
     Config::setup();
     logGen("Config::setup() done.", false);
@@ -100,14 +98,15 @@ void setup()
     bno.enableReport(SH2_ARVR_STABILIZED_RV, interval_us);
     bno.enableReport(SH2_ROTATION_VECTOR, interval_us * 3 / 2);
     bno.enableReport(SH2_GAME_ROTATION_VECTOR, interval_us * 7 / 3);
+    bno.enableReport(SH2_GRAVITY, interval_us * 3 / 2);
 
     attachInterrupt(digitalPinToInterrupt(BNO_INT_PIN), bnoInterrupt, FALLING);
 
     // ✍️ On pré-remplit le texte fixe une bonne fois pour toutes au démarrage
     // strncpy évite les dépassements de mémoire si le texte est trop long
-    // strncpy(CAPTEURSData_SH2_ROTATION_VECTOR.messageText, "ROTATION_VECTOR", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
-    // strncpy(CAPTEURSData_SH2_ARVR_STABILIZED_RV.messageText, "ARVR_STABILIZED_RV", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
-    // strncpy(CAPTEURSData_SH2_GAME_ROTATION_VECTOR.messageText, "GAME_ROTATION_VECTOR", sizeof(CAPTEURSData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(messageData_SH2_ROTATION_VECTOR.messageText, "ROTATION_VECTOR", sizeof(messageData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(messageData_SH2_ARVR_STABILIZED_RV.messageText, "ARVR_STABILIZED_RV", sizeof(messageData_SH2_ROTATION_VECTOR.messageText));
+    // strncpy(messageData_SH2_GAME_ROTATION_VECTOR.messageText, "GAME_ROTATION_VECTOR", sizeof(messageData_SH2_ROTATION_VECTOR.messageText));
 
     MonServeur::setup();
 }
@@ -115,23 +114,23 @@ void setup()
 unsigned long lastSendTime = 0;
 unsigned long lastStillAlive = 0;
 
-int sendCAPTEURSData()
+int sendmessageData()
 {
-    Serial.println("sendCAPTEURSData");
+    Serial.println("sendmessageData");
     int n = 0;
     if (!Sender::openConnection())
     {
         Serial.println("Sender::openConnection() FAILED");
         return 0;
     }
-    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
+    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
     {
         MessageData *m = &data[i];
-        Serial.println(String(i, DEC) + ":" + String(m->imuInfo.sensorId, DEC) + ":" + m->sent);
-        if (!m->sent && m->imuInfo.sensorId >= 0)
+        Serial.println(String(i, DEC) + ":" + String(m->messageType, DEC) + ":" + m->sent);
+        if (!m->sent && m->messageType >= 0)
         {
             Sender::send(m);
-            Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->imuInfo.sensorId, m->imuInfo.q_real, m->imuInfo.q_i, m->imuInfo.q_j, m->imuInfo.q_k);
+            // Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->messageType, m->imuInfo.q_real, m->imuInfo.q_i, m->imuInfo.q_j, m->imuInfo.q_k);
             m->sent = true;
             n++;
         }
@@ -146,28 +145,39 @@ String getJson()
     json += "\"ssid\": \"" + WiFi.SSID() + "\",";
     json += "\"channel\": " + String(WiFi.channel(), DEC) + ",";
     json += "\"test\": { \"texte\": \"zsxedcrfv\" },";
-    for (int i = 0; i < MAX_CAPTEURS_DATA; i++)
+    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
     {
         MessageData *m = &data[i];
-        String prefix = "";
-        switch (m->imuInfo.sensorId)
+        switch (m->messageType)
         {
-        case SH2_ARVR_STABILIZED_RV:
-            prefix = "arvr_";
+        case IMU_ARVR_STABILIZED_RV:
+            json += "\"arvr_r\":" + String(m->arvrStabilizedRVInfo.q_real) + ",";
+            json += "\"arvr_i\":" + String(m->arvrStabilizedRVInfo.q_i) + ",";
+            json += "\"arvr_j\":" + String(m->arvrStabilizedRVInfo.q_j) + ",";
+            json += "\"arvr_k\":" + String(m->arvrStabilizedRVInfo.q_k) + ",";
+            json += "\"arvr_accuracy\":" + String(m->arvrStabilizedRVInfo.accuracy) + ",";
+            json += "\"arvr_precision\":" + String(m->arvrStabilizedRVInfo.precision) + ",";
             break;
-        case SH2_ROTATION_VECTOR:
-            prefix = "rv_";
+        case IMU_ROTATION_VECTOR:
+            json += "\"rv_r\":" + String(m->rotationVectorInfo.q_real) + ",";
+            json += "\"rv_i\":" + String(m->rotationVectorInfo.q_i) + ",";
+            json += "\"rv_j\":" + String(m->rotationVectorInfo.q_j) + ",";
+            json += "\"rv_k\":" + String(m->rotationVectorInfo.q_k) + ",";
+            json += "\"rv_accuracy\":" + String(m->rotationVectorInfo.accuracy) + ",";
+            json += "\"rv_precision\":" + String(m->rotationVectorInfo.precision) + ",";
             break;
-        case SH2_GAME_ROTATION_VECTOR:
-            prefix = "grv_";
+        case IMU_GAME_ROTATION_VECTOR:
+            json += "\"rv_r\":" + String(m->gameRotationVectorInfo.q_real) + ",";
+            json += "\"rv_i\":" + String(m->gameRotationVectorInfo.q_i) + ",";
+            json += "\"rv_j\":" + String(m->gameRotationVectorInfo.q_j) + ",";
+            json += "\"rv_k\":" + String(m->gameRotationVectorInfo.q_k) + ",";
+            json += "\"rv_precision\":" + String(m->gameRotationVectorInfo.precision) + ",";
             break;
-        }
-        if (prefix.length() > 0)
-        {
-            json += "\"" + prefix + "r\":" + String(m->imuInfo.q_real) + ",";
-            json += "\"" + prefix + "i\":" + String(m->imuInfo.q_i) + ",";
-            json += "\"" + prefix + "j\":" + String(m->imuInfo.q_j) + ",";
-            json += "\"" + prefix + "k\":" + String(m->imuInfo.q_k) + ",";
+        case IMU_GRAVITY:
+            json += "\"gravity_x\":" + String(m->gravityInfo.x) + ",";
+            json += "\"gravity_y\":" + String(m->gravityInfo.y) + ",";
+            json += "\"gravity_z\":" + String(m->gravityInfo.z) + ",";
+            break;
         }
     }
     // json += "\"arvr_yaw\":" + String(ARVR_STABILIZED_RV_anglesActuels.yaw, 2) + ",";
@@ -229,18 +239,28 @@ void loop()
     {
         lastSendTime = millis();
         // Serial.println();
-        int n = sendCAPTEURSData();
+        int n = sendmessageData();
         if (n > 0)
-            Log::addLog("sendCAPTEURSData():" + String(n, DEC));
+            Log::addLog("sendmessageData():" + String(n, DEC));
         MonServeur::send(getJson());
     }
     if (millis() - lastStillAlive >= 10000) // Envoi toutes les 10 secondes d'un message "still alive" pour indiquer que le capteur est toujours actif
     {
-        lastStillAlive = millis();
-        String stillAliveText = "En Vie! " + String(stillAliveMessage.number, DEC) + " - " + String(stillAliveMessage.mon_timestamp, DEC);
-        strncpy(stillAliveMessage.stringInfo.messageText, stillAliveText.c_str(), sizeof(stillAliveMessage.stringInfo.messageText));  
-        stillAliveMessage.stringInfo.stringLength = strlen(stillAliveMessage.stringInfo.messageText);
-        Sender::send(&stillAliveMessage);
+        MessageData *m = getMessage(MessageType::STILL_ALIVE);
+        if (m != nullptr)
+        {
+            m->messageType = MessageType::STILL_ALIVE;
+            m->mon_timestamp = millis();
+            m->sent = false;              // Marquer le message comme non envoyé avant l'envoi
+            m->treated = false;           // Marquer le message comme non traité avant l'envoi
+            m->received = false;          // Marquer le message comme non reçu avant l'envoi
+            m->version = protocolVersion; // Assurez-vous que la version est correctement définie
+            lastStillAlive = millis();
+            String stillAliveText = "En Vie! " + String(m->number, DEC) + " - " + String(m->mon_timestamp, DEC);
+            strncpy(m->stringInfo.messageText, stillAliveText.c_str(), sizeof(m->stringInfo.messageText));
+            m->stringInfo.stringLength = strlen(m->stringInfo.messageText);
+            addMessage(m);
+        }
     }
 
     if (bnoDataReady)
@@ -252,16 +272,40 @@ void loop()
             // Log::addLog("bno getEvent", true);
             //  On vérifie le type reçu du BNO085
             //  Serial.print("*" + String(sensorValue.sensorId, DEC));
-            MessageData *m = getMessage(sensorValue.sensorId);
+            MessageData *m = getMessage((MessageType)sensorValue.sensorId);
             if (m != nullptr)
             {
                 // Serial.print("@");
-                m->imuInfo.sensorId = sensorValue.sensorId;
+                m->messageType = (MessageType)sensorValue.sensorId;
                 float current_real;
                 float current_i;
                 float current_j;
                 float current_k;
+                float current_x;
+                float current_y;
+                float current_z;
 
+                if (sensorValue.sensorId == SH2_GRAVITY)
+                {
+                    current_x = sensorValue.un.gravity.x;
+                    current_y = sensorValue.un.gravity.y;
+                    current_z = sensorValue.un.gravity.z;
+                    // Vérification du filtre de mouvement
+                    if (abs(current_x - m->gravityInfo.x) > SEUIL_GRAVITY ||
+                        abs(current_y - m->gravityInfo.y) > SEUIL_GRAVITY ||
+                        abs(current_z - m->gravityInfo.z) > SEUIL_GRAVITY)
+                    {
+                        // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
+                        m->gravityInfo.imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
+                        m->gravityInfo.cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
+
+                        // 2. Remplissage des coordonnées
+                        m->gravityInfo.x = current_x;
+                        m->gravityInfo.y = current_y;
+                        m->gravityInfo.z = current_z;
+                        addMessage(m);
+                    }
+                }
                 if (sensorValue.sensorId == SH2_ROTATION_VECTOR)
                 {
                     current_real = sensorValue.un.rotationVector.real;
@@ -270,20 +314,20 @@ void loop()
                     current_k = sensorValue.un.rotationVector.k;
 
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->imuInfo.q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->imuInfo.q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->rotationVectorInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->rotationVectorInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
-                        m->imuInfo.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // Convertir en degrés
-                        m->imuInfo.precision = sensorValue.status & 0x03;                       // Précision du capteur (0-3)
-                        m->imuInfo.imu_timestamp = sensorValue.timestamp;                       // Timestamp du BNO085
-                        m->imuInfo.cap_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
+                        m->rotationVectorInfo.accuracy = sensorValue.un.rotationVector.accuracy * 57.2958; // Convertir en degrés
+                        m->rotationVectorInfo.precision = sensorValue.status & 0x03;                       // Précision du capteur (0-3)
+                        m->rotationVectorInfo.imu_timestamp = sensorValue.timestamp;                       // Timestamp du BNO085
+                        m->rotationVectorInfo.cap_timestamp = millis();                                    // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->imuInfo.q_real = current_real;
-                        m->imuInfo.q_i = current_i;
-                        m->imuInfo.q_j = current_j;
-                        m->imuInfo.q_k = current_k;
+                        m->rotationVectorInfo.q_real = current_real;
+                        m->rotationVectorInfo.q_i = current_i;
+                        m->rotationVectorInfo.q_j = current_j;
+                        m->rotationVectorInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }
@@ -294,21 +338,21 @@ void loop()
                     current_j = sensorValue.un.arvrStabilizedRV.j;
                     current_k = sensorValue.un.arvrStabilizedRV.k;
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->imuInfo.q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->imuInfo.q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->arvrStabilizedRVInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->arvrStabilizedRVInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
 
-                        m->imuInfo.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // Convertir en degrés
-                        m->imuInfo.precision = sensorValue.status & 0x03;                         // Précision du capteur (0-3)
-                        m->imuInfo.imu_timestamp = sensorValue.timestamp;                         // Timestamp du BNO085
-                        m->imuInfo.cap_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
+                        m->arvrStabilizedRVInfo.accuracy = sensorValue.un.arvrStabilizedRV.accuracy * 57.2958; // Convertir en degrés
+                        m->arvrStabilizedRVInfo.precision = sensorValue.status & 0x03;                         // Précision du capteur (0-3)
+                        m->arvrStabilizedRVInfo.imu_timestamp = sensorValue.timestamp;                         // Timestamp du BNO085
+                        m->arvrStabilizedRVInfo.cap_timestamp = millis();                                      // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->imuInfo.q_real = current_real;
-                        m->imuInfo.q_i = current_i;
-                        m->imuInfo.q_j = current_j;
-                        m->imuInfo.q_k = current_k;
+                        m->arvrStabilizedRVInfo.q_real = current_real;
+                        m->arvrStabilizedRVInfo.q_i = current_i;
+                        m->arvrStabilizedRVInfo.q_j = current_j;
+                        m->arvrStabilizedRVInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }
@@ -320,21 +364,20 @@ void loop()
                     current_k = sensorValue.un.gameRotationVector.k;
 
                     // Vérification du filtre de mouvement
-                    if (abs(current_real - m->imuInfo.q_real) > SEUIL_MOUVEMENT ||
-                        abs(current_i - m->imuInfo.q_i) > SEUIL_MOUVEMENT)
+                    if (abs(current_real - m->gameRotationVectorInfo.q_real) > SEUIL_MOUVEMENT ||
+                        abs(current_i - m->gameRotationVectorInfo.q_i) > SEUIL_MOUVEMENT)
                     {
                         // 1. Remplissage du type de données (ex: 101 pour Rotation Vector)
 
-                        m->imuInfo.accuracy = -1;
-                        m->imuInfo.precision = sensorValue.status & 0x03; // Précision du capteur (0-3)
-                        m->imuInfo.imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
-                        m->imuInfo.cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
+                        m->gameRotationVectorInfo.precision = sensorValue.status & 0x03; // Précision du capteur (0-3)
+                        m->gameRotationVectorInfo.imu_timestamp = sensorValue.timestamp; // Timestamp du BNO085
+                        m->gameRotationVectorInfo.cap_timestamp = millis();              // Timestamp de l'ESP32 au moment de l'envoi
 
                         // 2. Remplissage des Quaternions
-                        m->imuInfo.q_real = current_real;
-                        m->imuInfo.q_i = current_i;
-                        m->imuInfo.q_j = current_j;
-                        m->imuInfo.q_k = current_k;
+                        m->gameRotationVectorInfo.q_real = current_real;
+                        m->gameRotationVectorInfo.q_i = current_i;
+                        m->gameRotationVectorInfo.q_j = current_j;
+                        m->gameRotationVectorInfo.q_k = current_k;
                         addMessage(m);
                     }
                 }

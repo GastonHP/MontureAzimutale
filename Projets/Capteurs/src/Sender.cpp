@@ -33,6 +33,41 @@ bool Sender::send(MessageData *incomingData)
 {
     static int messageCounter = 0;
     messageCounter++;
+    switch (incomingData->messageType)
+    {
+    case IMU_ROTATION_VECTOR:
+        strncpy(incomingData->header, "IMU_ROTATION_VECTOR", sizeof(incomingData->header));
+        Log::addLog("Sender::send() IMU_ROTATION_VECTOR", true);
+        break;
+    case IMU_ARVR_STABILIZED_RV:
+        strncpy(incomingData->header, "IMU_ARVR_STABILIZED_RV", sizeof(incomingData->header));
+        Log::addLog("Sender::send() IMU_ARVR_STABILIZED_RV", true);
+        break;
+    case IMU_GAME_ROTATION_VECTOR:
+        strncpy(incomingData->header, "IMU_GAME_ROTATION_VECTOR", sizeof(incomingData->header));
+        Log::addLog("Sender::send() IMU_GAME_ROTATION_VECTOR", true);
+        break;
+    case GPS_DATA:
+        strncpy(incomingData->header, "GPS_DATA", sizeof(incomingData->header));
+        Log::addLog("Sender::send() GPS_DATA", true);
+        break;
+    case STILL_ALIVE:
+        strncpy(incomingData->header, "STILL_ALIVE", sizeof(incomingData->header));
+        Log::addLog("Sender::send() STILL_ALIVE", true);
+        break;
+    case STRING_256:
+        strncpy(incomingData->header, "STRING_256", sizeof(incomingData->header));
+        Log::addLog("Sender::send() STRING_256", true);
+        break;
+    case IMU_GRAVITY:
+        strncpy(incomingData->header, "IMU_GRAVITY", sizeof(incomingData->header));
+        Log::addLog("Sender::send() IMU_GRAVITY", true);
+        break;
+    default:
+        strncpy(incomingData->header, "UNKNOWN", sizeof(incomingData->header));
+        Log::addLog("Sender::send() UNKNOWN TYPE: " + String(incomingData->messageType, DEC), true);
+        break;
+    }
     incomingData->mon_timestamp = millis();
     incomingData->sent = false;              // Marquer le message comme non envoyé avant l'envoi
     incomingData->treated = false;           // Marquer le message comme non traité avant l'envoi
@@ -51,16 +86,16 @@ bool Sender::loop()
 {
     // Log::addLog("Sender::loop()", true);
     //  2. --- ENVOI (toutes les 2 secondes par exemple) ---
-    static unsigned long lastSend = 0;
-    if (millis() - lastSend > 2000)
-    {
-        lastSend = millis();
+    // static unsigned long lastSend = 0;
+    // if (millis() - lastSend > 2000)
+    // {
+    //     lastSend = millis();
 
-        udp.beginPacket(targetIP, localPort);
-        udp.print("Hello depuis l'IP " + WiFi.localIP().toString());
-        udp.endPacket();
+    //     udp.beginPacket(targetIP, localPort);
+    //     udp.print("Hello depuis l'IP " + WiFi.localIP().toString());
+    //     udp.endPacket();
 
-        Serial.println("Message UDP envoyé à " + targetIP.toString());
-    }
+    //     Serial.println("Message UDP envoyé à " + targetIP.toString());
+    // }
     return true;
 }

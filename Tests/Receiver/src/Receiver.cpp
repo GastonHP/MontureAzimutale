@@ -28,7 +28,7 @@ void Receiver::loop()
         if (len > 0)
         {
             packetBuffer[len] = '\0'; // Terminer la chaîne de caractères
-            Log::addLog("Paquet reçu : " + String(packetBuffer));
+            Log::addLog("Paquet reçu de " + udp.remoteIP().toString() + " : " + String(packetBuffer));
             // Traiter les données reçues ici
         }
     }

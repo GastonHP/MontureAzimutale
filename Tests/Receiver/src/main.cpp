@@ -92,9 +92,9 @@ void loop()
   if (millis() - lastSend > 5000)
   {
     lastSend = millis();
-#ifdef TELNET_ACTIF
-    telnet.println("Test ESP-NOW : " + String(millis(), DEC) + " ms");
-#endif
+// #ifdef TELNET_ACTIF
+//     telnet.println("Test ESP-NOW : " + String(millis(), DEC) + " ms");
+// #endif
     static int toggle = 0;
     toggle++;
     if (toggle % 4 == 0)
