@@ -6,7 +6,7 @@
 #include "EulerAngles.hpp"
 #include "MotorControl.hpp"
 #include "calibration.hpp"
-#include "Capteur.hpp"
+#include "Message.hpp"
 
 class Telescope
 {

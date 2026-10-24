@@ -1,28 +1,11 @@
 #include "Receiver.hpp"
-#include "capteur.hpp"
+#include "Message.hpp"
 #include "Log.hpp"
 
 #include "WiFiUdp.h"
 
 WiFiUDP udp;
-char packetBuffer[sizeof(MessageData)+5]; // Buffer de réception
-
-bool sent = true;
-void dataSent(uint8_t *address, uint8_t status)
-{
-    sent = true;
-    Serial.printf("Message sent to " MACSTR ", status: %d\n", MAC2STR(address), status);
-}
-
-void dataReceived(uint8_t *address, uint8_t *data, uint8_t len, signed int rssi, bool broadcast)
-{
-    Capteur::saveIMUData((MessageData *)data);
-    // Serial.print("Received: ");
-    // Serial.printf("%.*s\n", len, data);
-    // Serial.printf("RSSI: %d dBm\n", rssi);
-    // Serial.printf("From: " MACSTR "\n", MAC2STR(address));
-    // Serial.printf("%s\n", broadcast ? "Broadcast" : "Unicast");
-}
+MessageData Receiver::incomingData;
 
 String Receiver::error = "";
 void Receiver::setup(bool networkHP = true)
@@ -42,12 +25,13 @@ void Receiver::loop()
     if (packetSize)
     {
         // Lire le paquet reçu
-        int len = udp.read(packetBuffer, sizeof(packetBuffer) - 1);
+        int len = udp.read((char *)&incomingData, sizeof(MessageData));
         if (len > 0)
         {
-            packetBuffer[len] = '\0'; // Terminer la chaîne de caractères
-            Log::addLog("Paquet reçu : " + String(packetBuffer));
+            Log::addLog("Paquet reçu : " + String(incomingData.header));
             // Traiter les données reçues ici
+            if (incomingData.version == protocolVersion)
+                Message::addMessage(&incomingData);
         }
     }
 }

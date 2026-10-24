@@ -19,4 +19,5 @@ public:
     static CapteursMessage *getData();
 #endif
     static String error;
+    static MessageData incomingData;
 };

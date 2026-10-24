@@ -7,7 +7,8 @@
 #include "OTA.hpp"
 #include "log.hpp"
 #include "MonServeur.hpp"
-#include "Sender.hpp"
+#include "Communication.hpp"
+#include "Message.hpp"
 
 #define BNO_ADDR 0x4B
 #define BNO_INT_PIN 19
@@ -16,46 +17,10 @@ Adafruit_BNO08x bno;
 sh2_SensorValue_t sensorValue;
 volatile bool bnoDataReady = false;
 
-#define MAX_MESSAGES_DATA 10
-
-MessageData data[MAX_MESSAGES_DATA];
-
-static MessageData messageData;
-
-// esp_now_peer_info_t peerInfo;
-
 const float SEUIL_MOUVEMENT = 0.001;
-const float SEUIL_GRAVITY = 0.01;
+const float SEUIL_GRAVITY = 0.1;
 
 void IRAM_ATTR bnoInterrupt() { bnoDataReady = true; }
-
-MessageData *getMessage(MessageType messageType)
-{
-    // Serial.println("getMessage messageType=" + String(messageType, DEC));
-    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
-        if (data[i].messageType == messageType)
-            return &data[i];
-    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
-        if (data[i].messageType == NO_MESSAGE_TYPE)
-        {
-            data[i].messageType = messageType;
-            return &data[i];
-        }
-    return nullptr;
-}
-
-bool addMessage(MessageData *m)
-{
-    MessageData *dest = getMessage(m->messageType);
-    if (dest == nullptr)
-        dest = getMessage(NO_MESSAGE_TYPE);
-    if (dest == nullptr)
-        return false;
-    memcpy(dest, m, sizeof(MessageData));
-    dest->treated = false;
-    dest->sent = false;
-    return true;
-}
 
 static void logGen(String s, bool LogFile = true)
 {
@@ -64,17 +29,13 @@ static void logGen(String s, bool LogFile = true)
         Log::addLog(s);
 }
 
-static MessageData stillAliveMessage;
-
 void setup()
 {
     Serial.setTxBufferSize(2048);
     Serial.begin(115200);
 
     delay(1000);
-    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
-        data[i].messageType = NO_MESSAGE_TYPE;
-
+    Message::setup();
     Config::setup();
     logGen("Config::setup() done.", false);
     generic_setup();
@@ -82,7 +43,7 @@ void setup()
     OTA::setup();
 #endif
 
-    Sender::setup(Config::NetworkHP());
+    Communication::setup(Config::NetworkHP());
     pinMode(BNO_INT_PIN, INPUT_PULLUP);
     Wire.begin();
 
@@ -114,40 +75,15 @@ void setup()
 unsigned long lastSendTime = 0;
 unsigned long lastStillAlive = 0;
 
-int sendmessageData()
-{
-    Serial.println("sendmessageData");
-    int n = 0;
-    if (!Sender::openConnection())
-    {
-        Serial.println("Sender::openConnection() FAILED");
-        return 0;
-    }
-    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
-    {
-        MessageData *m = &data[i];
-        Serial.println(String(i, DEC) + ":" + String(m->messageType, DEC) + ":" + m->sent);
-        if (!m->sent && m->messageType >= 0)
-        {
-            Sender::send(m);
-            // Serial.printf("%d: Type: %d r=%f i=%f j=%f k=%f\n", millis(), m->messageType, m->imuInfo.q_real, m->imuInfo.q_i, m->imuInfo.q_j, m->imuInfo.q_k);
-            m->sent = true;
-            n++;
-        }
-    }
-    Sender::closeConnection();
-    return n;
-}
-
 String getJson()
 {
     String json = "{";
     json += "\"ssid\": \"" + WiFi.SSID() + "\",";
     json += "\"channel\": " + String(WiFi.channel(), DEC) + ",";
     json += "\"test\": { \"texte\": \"zsxedcrfv\" },";
-    for (int i = 0; i < MAX_MESSAGES_DATA; i++)
+    for (int i = 0; i < MAX_MESSAGE_DATA; i++)
     {
-        MessageData *m = &data[i];
+        MessageData *m = Message::getMessageByIndex(i);
         switch (m->messageType)
         {
         case IMU_ARVR_STABILIZED_RV:
@@ -231,35 +167,28 @@ void loop()
 #endif
     generic_loop();
 
-    Sender::loop();
+    Communication::loop();
 
 // delay(10);
 #define TempsEntreEnvoiData 1000
     if (millis() - lastSendTime >= TempsEntreEnvoiData) // Envoi toutes les 50 ms
     {
         lastSendTime = millis();
-        // Serial.println();
-        int n = sendmessageData();
-        if (n > 0)
-            Log::addLog("sendmessageData():" + String(n, DEC));
         MonServeur::send(getJson());
     }
     if (millis() - lastStillAlive >= 10000) // Envoi toutes les 10 secondes d'un message "still alive" pour indiquer que le capteur est toujours actif
     {
-        MessageData *m = getMessage(MessageType::STILL_ALIVE);
+        MessageData *m = Message::getSendMessage(MessageType::STILL_ALIVE);
         if (m != nullptr)
         {
             m->messageType = MessageType::STILL_ALIVE;
             m->mon_timestamp = millis();
-            m->sent = false;              // Marquer le message comme non envoyé avant l'envoi
-            m->treated = false;           // Marquer le message comme non traité avant l'envoi
-            m->received = false;          // Marquer le message comme non reçu avant l'envoi
             m->version = protocolVersion; // Assurez-vous que la version est correctement définie
             lastStillAlive = millis();
             String stillAliveText = "En Vie! " + String(m->number, DEC) + " - " + String(m->mon_timestamp, DEC);
             strncpy(m->stringInfo.messageText, stillAliveText.c_str(), sizeof(m->stringInfo.messageText));
             m->stringInfo.stringLength = strlen(m->stringInfo.messageText);
-            addMessage(m);
+            Message::addMessageToSend(m);
         }
     }
 
@@ -272,7 +201,7 @@ void loop()
             // Log::addLog("bno getEvent", true);
             //  On vérifie le type reçu du BNO085
             //  Serial.print("*" + String(sensorValue.sensorId, DEC));
-            MessageData *m = getMessage((MessageType)sensorValue.sensorId);
+            MessageData *m = Message::getSendMessage((MessageType)sensorValue.sensorId);
             if (m != nullptr)
             {
                 // Serial.print("@");
@@ -303,7 +232,7 @@ void loop()
                         m->gravityInfo.x = current_x;
                         m->gravityInfo.y = current_y;
                         m->gravityInfo.z = current_z;
-                        addMessage(m);
+                        Message::addMessageToSend(m);
                     }
                 }
                 if (sensorValue.sensorId == SH2_ROTATION_VECTOR)
@@ -328,7 +257,7 @@ void loop()
                         m->rotationVectorInfo.q_i = current_i;
                         m->rotationVectorInfo.q_j = current_j;
                         m->rotationVectorInfo.q_k = current_k;
-                        addMessage(m);
+                        Message::addMessageToSend(m);
                     }
                 }
                 if (sensorValue.sensorId == SH2_ARVR_STABILIZED_RV)
@@ -353,7 +282,7 @@ void loop()
                         m->arvrStabilizedRVInfo.q_i = current_i;
                         m->arvrStabilizedRVInfo.q_j = current_j;
                         m->arvrStabilizedRVInfo.q_k = current_k;
-                        addMessage(m);
+                        Message::addMessageToSend(m);
                     }
                 }
                 if (sensorValue.sensorId == SH2_GAME_ROTATION_VECTOR)
@@ -378,7 +307,7 @@ void loop()
                         m->gameRotationVectorInfo.q_i = current_i;
                         m->gameRotationVectorInfo.q_j = current_j;
                         m->gameRotationVectorInfo.q_k = current_k;
-                        addMessage(m);
+                        Message::addMessageToSend(m);
                     }
                 }
             }

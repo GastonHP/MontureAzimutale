@@ -10,7 +10,7 @@
 #include "Telescope.hpp"
 #include "MonServeur.hpp"
 #include "monEcran.hpp"
-#include "capteur.hpp"
+#include "Message.hpp"
 #include "Receiver.hpp"
 
 #ifdef TEST_LCD
@@ -67,8 +67,8 @@ void setup()
   // setup du GPS
   GPSManager::setup(); // RX=18, TX=17
   logGen("GPS manager set.");
-  Capteur::setup();
-  logGen("Capteur setup done!");
+  Message::setup();
+  logGen("Message setup done!");
   Receiver::setup(Config::NetworkHP());
 }
 
@@ -90,7 +90,7 @@ void loop()
     GPSManager::stop();
     return;
   }
-  Capteur::loop();
+  Message::loop();
   MonServeur::loop();
   GPSManager::loop();
   Telescope::loop();
