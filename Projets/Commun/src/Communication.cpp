@@ -84,7 +84,7 @@ bool Communication::send(MessageData *messageData)
     udp.beginPacket(targetIP, localPort);
     udp.write(reinterpret_cast<uint8_t *>(messageData), sizeof(MessageData));
     udp.endPacket();
-    Log::addLog("Communication::send() ended", true);
+    Log::addLog("Communication::send() ended");
     messageData->status = Sent;
     return true;
 }

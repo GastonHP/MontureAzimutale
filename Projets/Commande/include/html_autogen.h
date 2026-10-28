@@ -8,7 +8,7 @@
 
 const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 <html>
-<!-- test v -->
+<!-- test -->
 <head>
     <title>Telescope Control Center</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">

@@ -11,7 +11,7 @@
 #include "MonServeur.hpp"
 #include "monEcran.hpp"
 #include "Message.hpp"
-#include "Receiver.hpp"
+#include "communication.hpp"
 
 #ifdef TEST_LCD
 extern void lcd_test_setup(Adafruit_ST7789 *monEcran);
@@ -32,9 +32,12 @@ static void logGen(String s, bool LogFile = true)
 
 void setup()
 {
+  Serial.setTxBufferSize(2048);
   Serial.begin(SERIAL_SPEED);
   // Laisse le temps au S3 de se stabiliser
   delay(2000);
+  Message::setup();
+  logGen("Message setup done!");
   // setup de l'écran
   MonEcran::setup();
   logGen("MonEcran::setup done.", false);
@@ -45,8 +48,9 @@ void setup()
   // setup de la config wifi, mqtt, ftp, OTA, etc.
   Config::setup(MonEcran::log);
   logGen("Config::setup done.");
-  RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
   generic_setup(MonEcran::log);
+  RGB_LED_SET(0, 32, 32, 15); // éteint la LED au démarrage
+
   logGen("generic_setup done.");
 #ifdef SD_ACTIF
   SDisk::setup();
@@ -67,9 +71,7 @@ void setup()
   // setup du GPS
   GPSManager::setup(); // RX=18, TX=17
   logGen("GPS manager set.");
-  Message::setup();
-  logGen("Message setup done!");
-  Receiver::setup(Config::NetworkHP());
+  Communication::setup(Config::NetworkHP());
 }
 
 unsigned long nextTime = 0;
@@ -79,7 +81,12 @@ void loop()
 {
 #ifdef OTA_ACTIF
   OTA::loop();
+  if (OTA::started())
+  {
+    return;
+  }
 #endif
+  generic_loop();
   if (!Telescope::loopActif)
     return;
 
@@ -100,5 +107,5 @@ void loop()
     nextTime = millis() + 1000;
     Log::addLog("--------Still alive!");
   }
-  Receiver::loop();
+  Communication::loop();
 }

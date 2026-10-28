@@ -1,7 +1,7 @@
 #pragma once
 #include "Arduino.h"
-// #include <Adafruit_BNO08x.h>
-#include "../../Commun/include/Communication.h"
+#include <Adafruit_BNO08x.h>
+#define protocolVersion 4
 
 typedef enum MessageType
 {

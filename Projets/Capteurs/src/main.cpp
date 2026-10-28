@@ -32,16 +32,13 @@ static void logGen(String s, bool LogFile = true)
 void setup()
 {
     Serial.setTxBufferSize(2048);
-    Serial.begin(115200);
+    Serial.begin(SERIAL_SPEED);
 
     delay(1000);
     Message::setup();
     Config::setup();
-    logGen("Config::setup() done.", false);
+    logGen("Config::setup() done.");
     generic_setup();
-#ifdef OTA_ACTIF
-    OTA::setup();
-#endif
 
     Communication::setup(Config::NetworkHP());
     pinMode(BNO_INT_PIN, INPUT_PULLUP);
@@ -166,7 +163,6 @@ void loop()
     }
 #endif
     generic_loop();
-
     Communication::loop();
 
 // delay(10);

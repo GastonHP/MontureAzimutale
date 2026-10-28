@@ -1,6 +1,8 @@
 #pragma once
-#include "../../Commun/include/Communication.h"
 #include "Message.hpp"
+
+
+#define udpLocalPort 4210 // Port d'écoute local
 
 class Communication
 {

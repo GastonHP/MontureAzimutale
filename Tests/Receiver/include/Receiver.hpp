@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../Projets/Commun/include/Communication.h"
+#include "../../../Projets/Commun/include/Communication.hpp"
 #include "WiFiUdp.h"
 
 class Receiver
